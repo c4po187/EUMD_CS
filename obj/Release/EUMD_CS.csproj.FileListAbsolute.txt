@@ -8,4 +8,3 @@ c:\users\c4po\documents\visual studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\
 c:\users\c4po\documents\visual studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\Microsoft.Xna.Framework.Graphics.xml
 c:\users\c4po\documents\visual studio 2012\Projects\EUMD_CS\EUMD_CS\obj\Release\EUMD_CS.dll
 c:\users\c4po\documents\visual studio 2012\Projects\EUMD_CS\EUMD_CS\obj\Release\EUMD_CS.pdb
-c:\users\c4po\documents\visual studio 2012\Projects\EUMD_CS\EUMD_CS\obj\Release\EUMD_CS.csprojResolveAssemblyReference.cache
