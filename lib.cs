@@ -1,8 +1,11 @@
 ﻿#region Introduction
 
-/* Eh Up Me Duck C Sharp Framework -
- * A framework that contains classes and definitiosn to aid in the
- * development of XNA/Monogame projects.
+/* Geometry Primitives -
+ * A namespace that contains some simple geometries, that XNA/Monogame
+ * should have bloody well had all along. For example. having to use
+ * Rectangle with a height of 1px just to construct a simple line.
+ * This namepace eliminates that stupidity and gives you these classes
+ * you've been craving for, and then some.
  **********************************************************************
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +33,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Web.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -247,6 +251,35 @@ namespace EUMD_CS {
                     }
                 }
 
+                /*
+                 * TODO:
+                 *      The following function needs fixing, pronto!
+                 */
+
+                /// <summary>
+                /// Checks to see if a line and a circle intersect
+                /// </summary>
+                /// <param name="line">
+                /// A line
+                /// </param>
+                /// <param name="circle">
+                /// Err... a Circle?
+                /// </param>
+                /// <returns>
+                /// True on an intersection
+                /// </returns>
+                public static bool isIntersectPrimitives(Line line, Circle circle) {
+                    double xDiff = (line.EndPoint.X - line.StartPoint.X);
+                    double yDiff = (line.EndPoint.Y - line.StartPoint.Y);
+                    double dRad = Math.Sqrt(Math.Pow(xDiff, 2) + Math.Pow(yDiff, 2));
+                    double det = Maths.LinearAlgebra.determinant(line.StartPoint.X, line.StartPoint.Y,
+                        line.EndPoint.X, line.EndPoint.Y);
+
+                    double incidence = (Math.Pow(circle.Radius, 2) * Math.Pow(dRad, 2) - Math.Pow(det, 2));
+
+                    return (incidence >= 0);
+                }
+
                 /// <summary>
                 /// Base Draw Call, prepares the renderer for sub-class draw routines.
                 /// </summary>
@@ -315,7 +348,8 @@ namespace EUMD_CS {
                     m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color);
                     m_vertices[1] = new VertexPositionColor(new Vector3(p1.X, p1.Y, 0), color);
                     m_origin = MidPoint;
-                    init(m_vertices.Length);
+                    if (m_graphicsDevice != null)
+                        init(m_vertices.Length);
                 }
 
                 /// <summary>
@@ -345,7 +379,8 @@ namespace EUMD_CS {
                         p0.X + (float)(Math.Cos(MathHelper.ToRadians(degrees)) * length),
                         p0.Y + (float)(Math.Sin(MathHelper.ToRadians(degrees)) * length), 0), color);
                     m_origin = MidPoint;
-                    init(m_vertices.Length);
+                    if (m_graphicsDevice != null)
+                        init(m_vertices.Length);
                 }
 
                 #endregion
@@ -411,8 +446,8 @@ namespace EUMD_CS {
                 /// in geometries.
                 /// </summary>
                 public override void enableRotationFromCentre() {
-                    m_origin = MidPoint;
                     base.enableRotationFromCentre();
+                    m_origin = MidPoint;
                 }
 
                 /// <summary>
@@ -452,15 +487,15 @@ namespace EUMD_CS {
                     float x4 = other.m_vertices[1].Position.X;
                     float y4 = other.m_vertices[1].Position.Y;
 
-                    float det1_2 = Maths.LinearAlgebra.determinant4f(x1, y1, x2, y2);
-                    float det3_4 = Maths.LinearAlgebra.determinant4f(x3, y3, x4, y4);
-                    float detsubs = Maths.LinearAlgebra.determinant4f((x1 - x2), (y1 - y2), (x3 - x4), (y3 - y4));
+                    float det1_2 = Maths.LinearAlgebra.determinant(x1, y1, x2, y2);
+                    float det3_4 = Maths.LinearAlgebra.determinant(x3, y3, x4, y4);
+                    float detsubs = Maths.LinearAlgebra.determinant((x1 - x2), (y1 - y2), (x3 - x4), (y3 - y4));
 
                     if (detsubs == 0)
                         return Vector2.Zero;
                     else {
-                        float x = (Maths.LinearAlgebra.determinant4f(det1_2, (x1 - x2), det3_4, (x3 - x4)) / detsubs);
-                        float y = (Maths.LinearAlgebra.determinant4f(det1_2, (y1 - y2), det3_4, (y3 - y4)) / detsubs);
+                        float x = (Maths.LinearAlgebra.determinant(det1_2, (x1 - x2), det3_4, (x3 - x4)) / detsubs);
+                        float y = (Maths.LinearAlgebra.determinant(det1_2, (y1 - y2), det3_4, (y3 - y4)) / detsubs);
                         return new Vector2(x, y);
                     }
                 }
@@ -541,20 +576,12 @@ namespace EUMD_CS {
                 public Circle(Point origin, float radius, Color color, GraphicsDevice graphicsDevice) {
                     m_graphicsDevice = graphicsDevice;
                     m_origin = new Vector3((float)origin.X, (float)origin.Y, 0);
+                    m_sz_centre = m_origin;
                     m_radius = radius;
                     m_vertices = new VertexPositionColor[__m_divisions];
-                    float theta_i = (((float)Math.PI * 2) / m_vertices.Length);
-                    for (int i = 0; i < m_vertices.Length; ++i) {
-                        double theta = (theta_i * i);
-                        double xi = Math.Sin(theta);
-                        double yi = Math.Cos(theta);
-                        m_vertices[i].Position = new Vector3((m_origin.X + (float)(xi * m_radius)),
-                            (m_origin.Y + (float)(yi * m_radius)), 0);
-                        m_vertices[i].Color = color;
-                    }
-                    m_vertices[m_vertices.Length - 1] = m_vertices[0];
-
-                    init(m_vertices.Length);
+                    createCircle(color);
+                    if (m_graphicsDevice != null)
+                        init(m_vertices.Length);
                 }
 
                 #endregion
@@ -571,6 +598,8 @@ namespace EUMD_CS {
 
                 private const int __m_divisions = 360;
                 private float m_radius;
+                private int m_vertexIndex;
+                private Vector3 m_sz_centre;
 
                 #endregion
 
@@ -594,19 +623,17 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Property that gets and sets the Diameter of the circle.
+                /// Property that gets the Diameter of the circle.
                 /// </summary>
                 public float Diameter {
                     get { return (2 * m_radius); }
-                    set { m_radius = (value / 2); }
                 }
 
                 /// <summary>
-                /// Property that gets and sets the Radius of the circle.
+                /// Property that gets the Radius of the circle.
                 /// </summary>
                 public float Radius {
                     get { return m_radius; }
-                    set { m_radius = value; }
                 }
 
                 /// <summary>
@@ -628,6 +655,113 @@ namespace EUMD_CS {
                 #region Functions
 
                 /// <summary>
+                /// Creates the circle.
+                /// </summary>
+                /// <param name="color">
+                /// The colour of the circle.
+                /// </param>
+                private void createCircle(Color color) {
+                    float theta_i = (((float)Math.PI * 2) / m_vertices.Length);
+                    for (int i = 0; i < m_vertices.Length; ++i) {
+                        double theta = (theta_i * i);
+                        double xi = Math.Sin(theta);
+                        double yi = Math.Cos(theta);
+                        m_vertices[i].Position = new Vector3((m_sz_centre.X + (float)(xi * m_radius)),
+                            (m_sz_centre.Y + (float)(yi * m_radius)), 0);
+                        m_vertices[i].Color = color;
+                    }
+                    m_vertices[m_vertices.Length - 1] = m_vertices[0];
+                }
+
+                /// <summary>
+                /// Enables rotation around the centre of the circle.
+                /// </summary>
+                public override void enableRotationFromCentre() {
+                    base.enableRotationFromCentre();
+                    m_origin = Centre;
+                }
+
+                /// <summary>
+                /// Enables rotation around a vertex from the circle.
+                /// </summary>
+                /// <param name="vertexIndex">
+                /// The index of the vertex to rotate around.
+                /// </param>
+                public override void enableRotationFromVertex(int vertexIndex) {
+                    base.enableRotationFromVertex(vertexIndex);
+                    m_vertexIndex = vertexIndex;
+                }
+
+                /// <summary>
+                /// Checks to see if two circles intersect.
+                /// </summary>
+                /// <param name="other">
+                /// The other circle to check against.
+                /// </param>
+                /// <returns>
+                /// True if there is an intersection.
+                /// </returns>
+                public bool isIntersecting(Circle other) {
+                    /* Construct a line from the centre of our circle to the centre of the other circle.
+                     * We will be needing the line for its distance.
+                     * */
+                    Line c = new Line(new Point((int)this.Centre.X, (int)this.Centre.Y),
+                        new Point((int)other.Centre.X, (int)other.Centre.Y), Color.Transparent, null);
+
+                    return ((Maths.LinearAlgebra.absolute(this.Radius - other.Radius) <=
+                        Maths.LinearAlgebra.absolute(c.Distance)) && (Maths.LinearAlgebra.absolute(c.Distance) <=
+                        Maths.LinearAlgebra.absolute(this.Radius + other.Radius)));
+                }
+
+                /// <summary>
+                /// Gets both intersection points of the circles.
+                /// </summary>
+                /// <param name="other">
+                /// The other circle to analyze.
+                /// </param>
+                /// <returns>
+                /// A pair of Vectors.
+                /// </returns>
+                public Pair getIntersectionPoints(Circle other) {
+                    // X and Y differences of the circles
+                    double xDiff = (other.Centre.X - this.Centre.X);
+                    double yDiff = (other.Centre.Y - this.Centre.Y);
+
+                    // Distance between the centres of the circles
+                    double d = Math.Sqrt(Math.Pow(xDiff, 2) + Math.Pow(yDiff, 2));
+
+                    // Distance from our circle's centre to a line joining both points of intersection
+                    double dl = (Math.Pow(d, 2) + Math.Pow(this.Radius, 2) - Math.Pow(other.Radius, 2)) / (2 * d);
+
+                    // Left hand side intersect point
+                    Vector2 i1 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) + ((yDiff / d) *
+                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
+                        (float)(this.Centre.Y + ((yDiff * dl) / d) - ((xDiff / d) *
+                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
+
+                    // Right hand side intersect point
+                    Vector2 i2 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) - ((yDiff / d) *
+                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
+                        (float)(this.Centre.Y + ((yDiff * dl) / d) + ((xDiff / d) *
+                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
+
+                    // Return both vectors as a pair (can be accessed as Pair.First & Pair.Second)
+                    return new Pair(i1, i2);
+                }
+
+                /// <summary>
+                /// Sets the radius of the circle.
+                /// </summary>
+                /// <param name="val">
+                /// The value to set the radius.
+                /// </param>
+                public void setRadius(float val) {
+                    m_radius = val;
+                    m_sz_centre = this.Centre;
+                    createCircle(this.Colour);
+                }
+
+                /// <summary>
                 /// Draws the circle.
                 /// </summary>
                 /// <param name="gameTime">
@@ -635,6 +769,15 @@ namespace EUMD_CS {
                 /// </param>
                 public override void draw(GameTime gameTime) {
                     base.draw(gameTime);
+
+                    if (m_rotateState == RotateState.Vertex) {
+                        for (int i = 0; i < m_vertices.Length; ++i) {
+                            if (i != m_vertexIndex) {
+                                m_vertices[i].Position = Vector3.Transform(
+                                    m_vertices[i].Position - m_origin, Matrix.CreateRotationZ(m_rotateSpeed)) + m_origin;
+                            }
+                        }
+                    }
 
                     foreach (EffectPass pass in m_basicEffect.CurrentTechnique.Passes) {
                         pass.Apply();
@@ -791,7 +934,7 @@ namespace EUMD_CS {
             /// <returns>
             /// A float representing the determinant.
             /// </returns>
-            public static float determinant4f(float a, float b, float c, float d) {
+            public static float determinant(float a, float b, float c, float d) {
                 return (a * d) - (b * c);
             }
 
@@ -804,7 +947,7 @@ namespace EUMD_CS {
             /// <returns>
             /// A float representing the determinant.
             /// </returns>
-            public static float determinantMat(Matrix m) {
+            public static float determinant(Matrix m) {
                 return m.Determinant();
             }
 
@@ -821,7 +964,33 @@ namespace EUMD_CS {
             /// Double representing the magnitude.
             /// </returns>
             public static double magnitude(Vector2 v0, Vector2 v1) {
-                return Math.Sqrt(Math.Pow(v0.X - v1.X, 2) + Math.Pow(v0.Y - v1.Y, 2));
+                return Math.Sqrt(Math.Pow(v1.X - v0.X, 2) + Math.Pow(v1.Y - v0.Y, 2));
+            }
+
+            /// <summary>
+            /// Gets the absolute value.
+            /// </summary>
+            /// <param name="val">
+            /// The value to analyze.
+            /// </param>
+            /// <returns>
+            /// A double, switching the sign if the value is negative.
+            /// </returns>
+            public static double absolute(double val) {
+                return (val < 0) ? -val : val;
+            }
+
+            /// <summary>
+            /// Gets the absolute value.
+            /// </summary>
+            /// <param name="val">
+            /// The value to analyze.
+            /// </param>
+            /// <returns>
+            /// An integer, switching the sign if the value is negative.
+            /// </returns>
+            public static int absolute(int val) {
+                return (val < 0) ? -val : val;
             }
 
             #endregion
