@@ -64,6 +64,10 @@ namespace EUMD_CS {
             /// Primitive Geometry base. This class cannot be instantiated.
             /// It merely hold all common fields and functions that are available
             /// to all its child, sub-classes.
+            /// 
+            /// NOTE:
+            ///     Before moving, or resizing any of the primitives, rotation
+            ///     must be disabled first if it is enabled.
             /// </summary>
             public abstract class Primitive : IDisposable {
 
@@ -267,15 +271,60 @@ namespace EUMD_CS {
                 /// True on an intersection
                 /// </returns>
                 public static bool isIntersectPrimitives(Line line, Circle circle) {
-                    double xDiff = (line.EndPoint.X - line.StartPoint.X);
-                    double yDiff = (line.EndPoint.Y - line.StartPoint.Y);
-                    double dRad = Math.Sqrt(Math.Pow(xDiff, 2) + Math.Pow(yDiff, 2));
-                    double det = Maths.LinearAlgebra.determinant(line.StartPoint.X, line.StartPoint.Y,
-                        line.EndPoint.X, line.EndPoint.Y);
+                    Vector3 sc = circle.Centre - line.StartPoint;
+                    Vector3 ec = line.EndPoint - line.StartPoint;
+                    float ecd = Maths.LinearAlgebra.dotProductVec3(ec, ec);
+                    float secd = Maths.LinearAlgebra.dotProductVec3(sc, ec);
+                    float t = secd / ecd;
 
-                    double incidence = (Math.Pow(circle.Radius, 2) * Math.Pow(dRad, 2) - Math.Pow(det, 2));
+                    if (t < 0) t = 0; else if (t > 1) t = 1;
 
-                    return (incidence >= 0);
+                    Vector3 h = ((ec * t) + line.StartPoint) - circle.Centre;
+                    float hd = Maths.LinearAlgebra.dotProductVec3(h, h);
+
+                    return (hd <= Math.Pow(circle.Radius, 2));
+                }
+
+                /// <summary>
+                /// Gets the intersect point/s between a line and circle, regards the line as infinite.
+                /// </summary>
+                /// <param name="line">
+                /// A line.
+                /// </param>
+                /// <param name="circle">
+                /// A circle.
+                /// </param>
+                /// <returns>
+                /// Returns a pair of vectors if secant...
+                /// Returns a vector in the first index of the pair, null in the second if tangent...
+                /// Returns null otherwise.
+                /// </returns>
+                public static Pair getIntersectPointsPrimitives(Line line, Circle circle) {
+                    double dx = (line.EndPoint.X - line.StartPoint.X) / line.Distance;
+                    double dy = (line.EndPoint.Y - line.StartPoint.Y) / line.Distance;
+                    double t = (dx * (circle.Centre.X - line.StartPoint.X)) +
+                        (dy * (circle.Centre.Y - line.StartPoint.Y));
+                    Vector2 e = new Vector2((float)((t * dx) + line.StartPoint.X),
+                        (float)((t * dy) + line.StartPoint.Y));
+                    double dec = Math.Sqrt(Math.Pow(e.X - circle.Centre.X, 2) +
+                        Math.Pow(e.Y - circle.Centre.Y, 2));
+
+                    // Secant
+                    if (dec < circle.Radius) {
+                        double dt = Math.Sqrt(Math.Pow(circle.Radius, 2) - Math.Pow(dec, 2));
+                        Vector2 i1 = new Vector2((float)((t - dt) * dx + line.StartPoint.X),
+                            (float)((t - dt) * dy + line.StartPoint.Y));
+                        Vector2 i2 = new Vector2((float)((t + dt) * dx + line.StartPoint.X),
+                            (float)((t + dt) * dy + line.StartPoint.Y));
+
+                        return new Pair(i1, i2);
+                    }
+                    // Tangent
+                    else if (dec == circle.Radius)
+                        return new Pair(e, null);
+                    // No intersection
+                    else
+                        return null;
                 }
 
                 /// <summary>
@@ -517,6 +566,25 @@ namespace EUMD_CS {
                             Maths.LinearAlgebra.scalarCrossProduct(b, c, d) < 0) &&
                            (Maths.LinearAlgebra.scalarCrossProduct(a, b, c) *
                             Maths.LinearAlgebra.scalarCrossProduct(a, b, d) < 0);
+                }
+
+                /// <summary>
+                /// Adjusts the length of the line.
+                /// </summary>
+                /// <param name="val">
+                /// The value to add to or subtract from the line. 
+                /// </param>
+                public void adjustLength(float val) {
+                    if (m_vertices[1].Position.X > m_vertices[0].Position.X)
+                        m_vertices[1].Position.X += val;
+                    else if (m_vertices[1].Position.X < m_vertices[0].Position.X)
+                        m_vertices[1].Position.X -= val;
+                    else {
+                        if (m_vertices[1].Position.Y >= m_vertices[0].Position.Y)
+                            m_vertices[1].Position.Y += val;
+                        else
+                            m_vertices[1].Position.Y -= val;
+                    }
                 }
 
                 /// <summary>
