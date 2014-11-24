@@ -1,11 +1,9 @@
 ﻿#region Introduction
 
-/* Geometry Primitives -
- * A namespace that contains some simple geometries, that XNA/Monogame
- * should have bloody well had all along. For example. having to use
- * Rectangle with a height of 1px just to construct a simple line.
- * This namepace eliminates that stupidity and gives you these classes
- * you've been craving for, and then some.
+/* Eh Up Me Duck C Sharp Framework -
+ * A framework that provides developers with a hierarchy of classes, 
+ * functions and fields to help aid in game development alongside the
+ * XNA/Monogame framework. 
  **********************************************************************
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
