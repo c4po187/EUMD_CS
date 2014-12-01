@@ -76,6 +76,7 @@ namespace EUMD_CS {
                 // Protected fields, available to all child, sub-classes
                 protected VertexPositionColor[] m_vertices;
                 protected DynamicVertexBuffer m_vertexBuffer;
+                protected VertexDeclaration m_vertexDeclaration;
                 protected BasicEffect m_basicEffect;
                 protected GraphicsDevice m_graphicsDevice;
                 protected RasterizerState m_rasterizerState;
@@ -150,11 +151,22 @@ namespace EUMD_CS {
                     // Setup rasterizer
                     m_rasterizerState = new RasterizerState();
                     m_rasterizerState.CullMode = CullMode.None;
+                    m_rasterizerState.FillMode = FillMode.WireFrame;
                     m_graphicsDevice.RasterizerState = m_rasterizerState;
 
+                    // Setup Vertex Declaration
+                    m_vertexDeclaration = new VertexDeclaration(new VertexElement[] {
+                        new VertexElement(0, VertexElementFormat.Vector3,
+                            VertexElementUsage.Position, 0),
+                        new VertexElement(sizeof(float) * 3,
+                            VertexElementFormat.Color, VertexElementUsage.Color, 0)
+                    });
+
                     // Init VertexBuffer
-                    m_vertexBuffer = new DynamicVertexBuffer(m_graphicsDevice,
-                       typeof(VertexPositionColor), nVertices, BufferUsage.WriteOnly);
+                    //m_vertexBuffer = new DynamicVertexBuffer(m_graphicsDevice,
+                    //   typeof(VertexPositionColor), nVertices, BufferUsage.WriteOnly);
+                    m_vertexBuffer = new DynamicVertexBuffer(m_graphicsDevice, m_vertexDeclaration,
+                        m_vertices.Length, BufferUsage.None);
                     m_vertexBuffer.SetData<VertexPositionColor>(m_vertices);
                 }
 
@@ -252,11 +264,6 @@ namespace EUMD_CS {
                             (float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     }
                 }
-
-                /*
-                 * TODO:
-                 *      The following function needs fixing, pronto!
-                 */
 
                 /// <summary>
                 /// Checks to see if a line and a circle intersect
@@ -389,11 +396,11 @@ namespace EUMD_CS {
                 /// <param name="graphicsDevice">
                 /// Parameter represents the current graphics device.
                 /// </param>
-                public Line(Point p0, Point p1, Color color, GraphicsDevice graphicsDevice) {
+                public Line(Point p0, Point p1, Color? color, GraphicsDevice graphicsDevice) {
                     m_graphicsDevice = graphicsDevice;
                     m_vertices = new VertexPositionColor[2];
-                    m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color);
-                    m_vertices[1] = new VertexPositionColor(new Vector3(p1.X, p1.Y, 0), color);
+                    m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color.Value);
+                    m_vertices[1] = new VertexPositionColor(new Vector3(p1.X, p1.Y, 0), color.Value);
                     m_origin = MidPoint;
                     if (m_graphicsDevice != null)
                         init(m_vertices.Length);
@@ -418,13 +425,13 @@ namespace EUMD_CS {
                 /// <param name="graphicsDevice">
                 /// Parameter represents the current graphics device.
                 /// </param>
-                public Line(Point p0, int length, float degrees, Color color, GraphicsDevice graphicsDevice) {
+                public Line(Point p0, int length, float degrees, Color? color, GraphicsDevice graphicsDevice) {
                     m_graphicsDevice = graphicsDevice;
                     m_vertices = new VertexPositionColor[2];
-                    m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color);
+                    m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color.Value);
                     m_vertices[1] = new VertexPositionColor(new Vector3(
                         p0.X + (float)(Math.Cos(MathHelper.ToRadians(degrees)) * length),
-                        p0.Y + (float)(Math.Sin(MathHelper.ToRadians(degrees)) * length), 0), color);
+                        p0.Y + (float)(Math.Sin(MathHelper.ToRadians(degrees)) * length), 0), color.Value);
                     m_origin = MidPoint;
                     if (m_graphicsDevice != null)
                         init(m_vertices.Length);
@@ -639,13 +646,13 @@ namespace EUMD_CS {
                 /// <param name="graphicsDevice">
                 /// Parameter provides the GraphicsDevice.
                 /// </param>
-                public Circle(Point origin, float radius, Color color, GraphicsDevice graphicsDevice) {
+                public Circle(Point origin, float radius, Color? color, GraphicsDevice graphicsDevice) {
                     m_graphicsDevice = graphicsDevice;
                     m_origin = new Vector3((float)origin.X, (float)origin.Y, 0);
                     m_sz_centre = m_origin;
                     m_radius = radius;
                     m_vertices = new VertexPositionColor[__m_divisions];
-                    createCircle(color);
+                    createCircle(color.Value);
                     if (m_graphicsDevice != null)
                         init(m_vertices.Length);
                 }
@@ -854,6 +861,346 @@ namespace EUMD_CS {
                 #endregion
             }
 
+            /// <summary>
+            /// Class that represents a triangle.
+            /// NOTE: Circles are drawn anti-clockwise, starting from the top (A, B, C). 
+            /// </summary>
+            public class Triangle : Primitive {
+
+                #region Constructors
+
+                /// <summary>
+                /// Default Constructor
+                /// </summary>
+                public Triangle() { ; }
+
+                /// <summary>
+                /// Creates a triangle from 3 specified points.
+                /// </summary>
+                /// <param name="p0">
+                /// Top point.
+                /// </param>
+                /// <param name="p1">
+                /// Left-Bottom point.
+                /// </param>
+                /// <param name="p2">
+                /// Right-Bottom point.
+                /// </param>
+                /// <param name="color">
+                /// Line colour of the triangle.
+                /// </param>
+                /// <param name="graphicsDevice">
+                /// Represents the current graphics device.
+                /// </param>
+                public Triangle(Point p0, Point p1, Point p2, Color? color, GraphicsDevice graphicsDevice) {
+                    m_graphicsDevice = graphicsDevice;
+                    isEqualateral = false;
+                    m_vertices = new VertexPositionColor[4];
+                    m_vertices[0] = new VertexPositionColor(new Vector3(p0.X, p0.Y, 0), color.Value);
+                    m_vertices[1] = new VertexPositionColor(new Vector3(p1.X, p1.Y, 0), color.Value);
+                    m_vertices[2] = new VertexPositionColor(new Vector3(p2.X, p2.Y, 0), color.Value);
+                    m_vertices[3] = m_vertices[0];
+                    if (graphicsDevice != null) {
+                        init(m_vertices.Length);
+                    }
+                }
+
+                /// <summary>
+                /// Creates an Equilateral Triangle.
+                /// </summary>
+                /// <param name="centre">
+                /// TYhe central position of the triangle.
+                /// </param>
+                /// <param name="length">
+                /// The length of each side of the triangle.
+                /// </param>
+                /// <param name="color">
+                /// Line colour of the triangle.
+                /// </param>
+                /// <param name="graphicsDevice">
+                /// Represents the current graphics device.
+                /// </param>
+                public Triangle(Vector2 centre, int length, Color? color, GraphicsDevice graphicsDevice) {
+                    m_graphicsDevice = graphicsDevice;
+                    m_length = length;
+                    isEqualateral = true;
+                    m_vertices = new VertexPositionColor[4];
+
+                    // Get the height
+                    double h = (Math.Sqrt(3) / 2) * length;
+
+                    // Now set the vertices
+                    m_vertices[0] = new VertexPositionColor(new Vector3(
+                        centre.X, (float)(centre.Y - (2 * (h / 3))), 0), color.Value);
+                    m_vertices[1] = new VertexPositionColor(new Vector3(
+                        (float)(centre.X - (length / 2)), (float)(centre.Y + (h / 3)), 0), color.Value);
+                    m_vertices[2] = new VertexPositionColor(new Vector3(
+                        (float)(centre.X + (length / 2)), (float)(centre.Y + (h / 3)), 0), color.Value);
+                    m_vertices[3] = m_vertices[0];
+
+                    if (m_graphicsDevice != null)
+                        init(m_vertices.Length);
+                }
+
+                #endregion
+
+                #region Fields
+
+                private bool isEqualateral;
+                private int m_length, m_vertexIndex;
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Gets and sets the first Vertex in the triangle.
+                /// </summary>
+                public Vector3 Vertex_A {
+                    get { return m_vertices[0].Position; }
+                    set {
+                        m_vertices[0].Position = value;
+                        resetData();
+                    }
+                }
+
+                /// <summary>
+                /// Gets and sets the second Vertex in the triangle.
+                /// </summary>
+                public Vector3 Vertex_B {
+                    get { return m_vertices[1].Position; }
+                    set {
+                        m_vertices[1].Position = value;
+                        resetData();
+                    }
+                }
+
+                /// <summary>
+                /// Gets and sets the third Vertex in the triangle.
+                /// </summary>
+                public Vector3 Vertex_C {
+                    get { return m_vertices[2].Position; }
+                    set {
+                        m_vertices[2].Position = value;
+                        resetData();
+                    }
+                }
+
+                /// <summary>
+                /// Returns the triangle's centroid.
+                /// </summary>
+                public Vector2 Centroid {
+                    get {
+                        Line alpha = this.createLineFrom(this.Vertex_B, null);
+                        Line beta = this.createLineFrom(this.Vertex_C, null);
+
+                        return alpha.getInterceptPoint(beta);
+                    }
+                }
+
+                /// <summary>
+                /// Returns the area of the triangle.
+                /// </summary>
+                public double Area {
+                    get {
+                        if (isEqualateral)
+                            return (Math.Sqrt(3) / 4) * Math.Pow(m_length, 2);
+                        else {
+                            Line l = new Line(new Point((int)(m_vertices[1].Position.X), (int)m_vertices[1].Position.Y),
+                                new Point((int)(m_vertices[2].Position.X), (int)(m_vertices[2].Position.Y)), Color.Transparent, null);
+                            double b = l.Distance;
+                            Vector2 b_mid = new Vector2(l.MidPoint.X, l.MidPoint.Y);
+                            double a = b_mid.Y - m_vertices[0].Position.Y;
+                            l.Dispose();
+
+                            return (b * a) / 2;
+                        }
+                    }
+                }
+
+                /// <summary>
+                /// Returns the perimeter of the triangle.
+                /// </summary>
+                public double Perimeter {
+                    get {
+                        if (isEqualateral)
+                            return m_length * 3;
+                        else {
+                            Line a = new Line(new Point((int)m_vertices[0].Position.X, (int)m_vertices[0].Position.Y),
+                                new Point((int)m_vertices[1].Position.X, (int)m_vertices[1].Position.Y), Color.Transparent, null);
+                            Line b = new Line(new Point((int)m_vertices[1].Position.X, (int)m_vertices[1].Position.Y),
+                                new Point((int)m_vertices[2].Position.X, (int)m_vertices[2].Position.Y), Color.Transparent, null);
+                            Line c = new Line(new Point((int)m_vertices[2].Position.X, (int)m_vertices[2].Position.Y),
+                                new Point((int)m_vertices[0].Position.X, (int)m_vertices[0].Position.Y), Color.Transparent, null);
+
+                            return a.Distance + b.Distance + c.Distance;
+                        }
+                    }
+                }
+
+                #endregion
+
+                #region Functions
+
+                /// <summary>
+                /// Resets the vertciers in the Vertex Buffer after any modifications.
+                /// </summary>
+                private void resetData() {
+                    m_vertexBuffer.SetData<VertexPositionColor>(m_vertices);
+                }
+
+                /// <summary>
+                /// Creates a line from the specified vertex to the opposing side of the triangle.
+                /// </summary>
+                /// <param name="vertex">
+                /// The vertex to start the line from on the triangle.
+                /// </param>
+                /// <returns>
+                /// A new line (real or imaginary, depending whether a color os given or not).
+                /// </returns>
+                public Line createLineFrom(Vector3 vertex, Color? color) {
+                    Line opposite;
+                    if (vertex == this.Vertex_A) {
+                        opposite = new Line(new Point((int)m_vertices[1].Position.X, (int)m_vertices[1].Position.Y),
+                            new Point((int)m_vertices[2].Position.X, (int)m_vertices[2].Position.Y), Color.Transparent, null);
+                    }
+                    else if (vertex == this.Vertex_B) {
+                        opposite = new Line(new Point((int)m_vertices[2].Position.X, (int)m_vertices[2].Position.Y),
+                            new Point((int)m_vertices[0].Position.X, (int)m_vertices[0].Position.Y), Color.Transparent, null);
+                    }
+                    else if (vertex == this.Vertex_C) {
+                        opposite = new Line(new Point((int)m_vertices[0].Position.X, (int)m_vertices[0].Position.Y),
+                            new Point((int)m_vertices[1].Position.X, (int)m_vertices[1].Position.Y), Color.Transparent, null);
+                    }
+                    else return null;
+
+                    Vector3 mid = opposite.MidPoint;
+
+                    if (color.HasValue) {
+                        return new Line(new Point((int)vertex.X, (int)vertex.Y), new Point((int)mid.X, (int)mid.Y),
+                            color, m_graphicsDevice);
+                    }
+                    else {
+                        return new Line(new Point((int)vertex.X, (int)vertex.Y), new Point((int)mid.X, (int)mid.Y),
+                            Color.Transparent, null);
+                    }
+                }
+
+                /// <summary>
+                /// Function that gets the median of an imaginary line from a specified corner of the
+                /// triangle to it's opposing side. 
+                /// </summary>
+                /// <param name="vertex">
+                /// The vertex to start the imaginary line from.
+                /// </param>
+                /// <returns>
+                /// Returns a vector representing the midpoint of the imaginary line.
+                /// </returns>
+                public Vector3 getMedian(Vector3 vertex) {
+                    return this.createLineFrom(vertex, null).MidPoint;
+                }
+
+                /// <summary>
+                /// Enables rotation from the centre oif the triangle.
+                /// </summary>
+                public override void enableRotationFromCentre() {
+                    base.enableRotationFromCentre();
+                    m_origin = new Vector3(this.Centroid, 0);
+                }
+
+                /// <summary>
+                /// Enables rotation around one of the triangles vertices.
+                /// </summary>
+                /// <param name="vertexIndex"></param>
+                public override void enableRotationFromVertex(int vertexIndex) {
+                    base.enableRotationFromVertex(vertexIndex);
+                    m_vertexIndex = vertexIndex;
+                }
+
+                /// <summary>
+                /// Creates an array of lines from two triangles.
+                /// </summary>
+                /// <param name="other">
+                /// The other triangle.
+                /// </param>
+                /// <returns>
+                /// An array of lines.
+                /// </returns>
+                private Line[] createTriLinesArray(Triangle other) {
+                    Line[] triLines = new Line[6];
+                    triLines[0] = new Line(new Point((int)this.m_vertices[0].Position.X, (int)this.m_vertices[0].Position.Y),
+                        new Point((int)this.m_vertices[1].Position.X, (int)this.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    triLines[1] = new Line(new Point((int)this.m_vertices[1].Position.X, (int)this.m_vertices[1].Position.Y),
+                        new Point((int)this.m_vertices[2].Position.X, (int)this.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    triLines[2] = new Line(new Point((int)this.m_vertices[2].Position.X, (int)this.m_vertices[2].Position.Y),
+                        new Point((int)this.m_vertices[0].Position.X, (int)this.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+                    triLines[3] = new Line(new Point((int)other.m_vertices[0].Position.X, (int)other.m_vertices[0].Position.Y),
+                        new Point((int)other.m_vertices[1].Position.X, (int)other.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    triLines[4] = new Line(new Point((int)other.m_vertices[1].Position.X, (int)other.m_vertices[1].Position.Y),
+                        new Point((int)other.m_vertices[2].Position.X, (int)other.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    triLines[5] = new Line(new Point((int)other.m_vertices[2].Position.X, (int)other.m_vertices[2].Position.Y),
+                        new Point((int)other.m_vertices[0].Position.X, (int)other.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    return triLines;
+                }
+
+                /// <summary>
+                /// Checks for the intersection of two triangles.
+                /// </summary>
+                /// <param name="other">
+                /// The other triangle to heck against.
+                /// </param>
+                /// <returns>
+                /// Returns true on an intersection.
+                /// </returns>
+                public bool isIntersecting(Triangle other) {
+                    // First make lines from all sides of the triangles
+                    Line[] tris = createTriLinesArray(other);
+                    Line t1A = tris[0];
+                    Line t1B = tris[1];
+                    Line t1C = tris[2];
+                    Line t2A = tris[3];
+                    Line t2B = tris[4];
+                    Line t2C = tris[5];
+
+                    return (t1A.isIntersecting(t2A) || t1A.isIntersecting(t2B) || t1A.isIntersecting(t2C) ||
+                        t1B.isIntersecting(t2A) || t1B.isIntersecting(t2B) || t1B.isIntersecting(t2C) ||
+                        t1C.isIntersecting(t2A) || t1C.isIntersecting(t2B) || t1C.isIntersecting(t2C));
+                }
+
+                /// <summary>
+                /// Function that draws the triangle.
+                /// </summary>
+                /// <param name="gameTime">
+                /// Represents the current game time.
+                /// </param>
+                public override void draw(GameTime gameTime) {
+                    base.draw(gameTime);
+
+                    if (m_rotateState == RotateState.Vertex) {
+                        for (int i = 0; i < m_vertices.Length; ++i) {
+                            if (i != m_vertexIndex) {
+                                m_vertices[i].Position = Vector3.Transform(
+                                    m_vertices[i].Position - m_origin, Matrix.CreateRotationZ(m_rotateSpeed)) + m_origin;
+                            }
+                        }
+                    }
+
+                    foreach (EffectPass pass in m_basicEffect.CurrentTechnique.Passes) {
+                        pass.Apply();
+                        m_graphicsDevice.DrawPrimitives(PrimitiveType.LineStrip, 0, m_vertices.Length - 1);
+                    }
+                }
+
+                #endregion
+            }
+
             #endregion
 
             #endregion
@@ -868,6 +1215,12 @@ namespace EUMD_CS {
         /// Provides functions in the form of Linear Algebra.
         /// </summary>
         public class LinearAlgebra {
+
+            #region Fields
+
+            public const double EPSILON = 0.000001;
+
+            #endregion
 
             #region Functions
 
