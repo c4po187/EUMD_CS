@@ -266,16 +266,16 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Checks to see if a line and a circle intersect
+                /// Checks to see if a line and a circle intersect.
                 /// </summary>
                 /// <param name="line">
-                /// A line
+                /// A line.
                 /// </param>
                 /// <param name="circle">
-                /// Err... a Circle?
+                /// A Circle.
                 /// </param>
                 /// <returns>
-                /// True on an intersection
+                /// True on an intersection.
                 /// </returns>
                 public static bool isIntersectPrimitives(Line line, Circle circle) {
                     Vector3 sc = circle.Centre - line.StartPoint;
@@ -290,6 +290,30 @@ namespace EUMD_CS {
                     float hd = Maths.LinearAlgebra.dotProductVec3(h, h);
 
                     return (hd <= Math.Pow(circle.Radius, 2));
+                }
+
+                /// <summary>
+                /// Checks whether a line and a triangle intersect.
+                /// </summary>
+                /// <param name="line">
+                /// A line.
+                /// </param>
+                /// <param name="triangle">
+                /// A triangle.
+                /// </param>
+                /// <returns>
+                /// True on an intersection.
+                /// </returns>
+                public static bool isIntersectPrimitives(Line line, Triangle triangle) {
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    return (line.isIntersecting(tris[0]) || line.isIntersecting(tris[1]) || line.isIntersecting(tris[2]));
                 }
 
                 /// <summary>
@@ -332,6 +356,37 @@ namespace EUMD_CS {
                     // No intersection
                     else
                         return null;
+                }
+
+                /// <summary>
+                /// Gets the intersect points between a line and a triangle.
+                /// </summary>
+                /// <param name="line">
+                /// A line.
+                /// </param>
+                /// <param name="triangle">
+                /// A triangle.
+                /// </param>
+                /// <returns>
+                /// A list of vectors containing all the intersect points.
+                /// </returns>
+                public static List<Vector2> getIntersectPointsPrimitives(Line line, Triangle triangle) {
+                    // List to hold intersect points (which will be returned)
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    foreach (Line t in tris)
+                        if (t.isIntersecting(line))
+                            isecs.Add(t.getInterceptPoint(line));
+
+                    return isecs;
                 }
 
                 /// <summary>
@@ -1118,7 +1173,7 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Creates an array of lines from two triangles.
+                /// Creates an array of lines from the edges of two triangles.
                 /// </summary>
                 /// <param name="other">
                 /// The other triangle.
@@ -1154,7 +1209,7 @@ namespace EUMD_CS {
                 /// Checks for the intersection of two triangles.
                 /// </summary>
                 /// <param name="other">
-                /// The other triangle to heck against.
+                /// The other triangle to check against for intersections.
                 /// </param>
                 /// <returns>
                 /// Returns true on an intersection.
@@ -1172,6 +1227,32 @@ namespace EUMD_CS {
                     return (t1A.isIntersecting(t2A) || t1A.isIntersecting(t2B) || t1A.isIntersecting(t2C) ||
                         t1B.isIntersecting(t2A) || t1B.isIntersecting(t2B) || t1B.isIntersecting(t2C) ||
                         t1C.isIntersecting(t2A) || t1C.isIntersecting(t2B) || t1C.isIntersecting(t2C));
+                }
+
+                /// <summary>
+                /// Gets all intersect points of two triangles.
+                /// </summary>
+                /// <param name="other">
+                /// The intersecting triangle.
+                /// </param>
+                /// <returns>
+                /// Returns a list of vectors.
+                /// </returns>
+                public List<Vector2> getIntersectPoints(Triangle other) {
+                    // List to add intersect points to, (to be returned)
+                    List<Vector2> isec = new List<Vector2>();
+                    // Array of triangle edges
+                    Line[] tris = createTriLinesArray(other);
+
+                    // Grab intersect points (if any)
+                    for (int triA = 0; triA < (tris.Length / 2); ++triA) {
+                        for (int triB = (tris.Length / 2); triB < tris.Length; ++triB) {
+                            if (tris[triA].isIntersecting(tris[triB]))
+                                isec.Add(tris[triA].getInterceptPoint(tris[triB]));
+                        }
+                    }
+
+                    return isec;
                 }
 
                 /// <summary>
@@ -1410,6 +1491,349 @@ namespace EUMD_CS {
             /// </returns>
             public static int absolute(int val) {
                 return (val < 0) ? -val : val;
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Provides functions that aid Vector analyzation.
+        /// </summary>
+        public class VectorHelper {
+
+            #region Functions
+
+            /// <summary>
+            /// Gets the minimum X-coordinate from a list of Vector2.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector2 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum X-coordinate.
+            /// </returns>
+            public static float getMinX(List<Vector2> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector2 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the minimum X-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum X-coordinate.
+            /// </returns>
+            public static float getMinX(List<Vector3> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the minimum X-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum X-coordinate.
+            /// </returns>
+            public static float getMinX(List<Vector4> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the maximum X-coordinate from a list of Vector2.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector2 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum X-coordinate.
+            /// </returns>
+            public static float getMaxX(List<Vector2> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector2 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the maximum X-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum X-coordinate.
+            /// </returns>
+            public static float getMaxX(List<Vector3> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the maximum X-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum X-coordinate.
+            /// </returns>
+            public static float getMaxX(List<Vector4> vecs) {
+                List<float> x_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    x_coords.Add(v.X);
+
+                return x_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the minimum Y-coordinate from a list of Vector2.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector2 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum Y-coordinate.
+            /// </returns>
+            public static float getMinY(List<Vector2> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector2 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the minimum Y-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum Y-coordinate.
+            /// </returns>
+            public static float getMinY(List<Vector3> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the minimum Y-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum Y-coordinate.
+            /// </returns>
+            public static float getMinY(List<Vector4> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the maximum Y-coordinate from a list of Vector2.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector2 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum Y-coordinate.
+            /// </returns>
+            public static float getMaxY(List<Vector2> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector2 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the maximum Y-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum Y-coordinate.
+            /// </returns>
+            public static float getMaxY(List<Vector3> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the maximum Y-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum Y-coordinate.
+            /// </returns>
+            public static float getMaxY(List<Vector4> vecs) {
+                List<float> y_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    y_coords.Add(v.Y);
+
+                return y_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the minimum Z-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum Z-coordinate.
+            /// </returns>
+            public static float getMinZ(List<Vector3> vecs) {
+                List<float> z_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    z_coords.Add(v.Z);
+
+                return z_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the minimum Z-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum Z-coordinate.
+            /// </returns>
+            public static float getMinZ(List<Vector4> vecs) {
+                List<float> z_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    z_coords.Add(v.Z);
+
+                return z_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the maximum Z-coordinate from a list of Vector3.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector3 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum Z-coordinate.
+            /// </returns>
+            public static float getMaxZ(List<Vector3> vecs) {
+                List<float> z_coords = new List<float>();
+                foreach (Vector3 v in vecs)
+                    z_coords.Add(v.Z);
+
+                return z_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the maximum Z-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum Z-coordinate.
+            /// </returns>
+            public static float getMaxZ(List<Vector4> vecs) {
+                List<float> z_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    z_coords.Add(v.Z);
+
+                return z_coords.Max();
+            }
+
+            /// <summary>
+            /// Gets the minimum W-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the minimum W-coordinate.
+            /// </returns>
+            public static float getMinW(List<Vector4> vecs) {
+                List<float> w_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    w_coords.Add(v.W);
+
+                return w_coords.Min();
+            }
+
+            /// <summary>
+            /// Gets the maximum W-coordinate from a list of Vector4.
+            /// </summary>
+            /// <param name="vecs">
+            /// Vector4 List.
+            /// </param>
+            /// <returns>
+            /// A float representing the maximum W-coordinate.
+            /// </returns>
+            public static float getMaxW(List<Vector4> vecs) {
+                List<float> w_coords = new List<float>();
+                foreach (Vector4 v in vecs)
+                    w_coords.Add(v.W);
+
+                return w_coords.Max();
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Provides miscellaneous Mathematical functions.
+        /// </summary>
+        public class Misc {
+
+            #region Functions
+
+            /// <summary>
+            /// Function that gets the percent of a given value.
+            /// </summary>
+            /// <param name="percent">
+            /// The percent desired.
+            /// </param>
+            /// <param name="val">
+            /// The value to gain a percentage from.
+            /// </param>
+            /// <returns>
+            /// A double representing the percentage.
+            /// </returns>
+            public static double percentOf(double percent, double val) {
+                double hundredth = (val / 100);
+                return (percent * hundredth);
             }
 
             #endregion
