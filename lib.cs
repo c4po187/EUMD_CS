@@ -317,6 +317,31 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
+                /// Checks whether a triangle and circle intersect.
+                /// </summary>
+                /// <param name="triangle">
+                /// A triangle.
+                /// </param>
+                /// <param name="circle">
+                /// A circle.
+                /// </param>
+                /// <returns>
+                /// True on an intersection
+                /// </returns>
+                public static bool isIntersectPrimitives(Triangle triangle, Circle circle) {
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    return (isIntersectPrimitives(tris[0], circle) || isIntersectPrimitives(tris[1], circle) ||
+                        isIntersectPrimitives(tris[2], circle));
+                }
+
+                /// <summary>
                 /// Gets the intersect point/s between a line and circle, regards the line as infinite.
                 /// </summary>
                 /// <param name="line">
@@ -331,31 +356,36 @@ namespace EUMD_CS {
                 /// Returns null otherwise.
                 /// </returns>
                 public static Pair getIntersectPointsPrimitives(Line line, Circle circle) {
-                    double dx = (line.EndPoint.X - line.StartPoint.X) / line.Distance;
-                    double dy = (line.EndPoint.Y - line.StartPoint.Y) / line.Distance;
-                    double t = (dx * (circle.Centre.X - line.StartPoint.X)) +
-                        (dy * (circle.Centre.Y - line.StartPoint.Y));
-                    Vector2 e = new Vector2((float)((t * dx) + line.StartPoint.X),
-                        (float)((t * dy) + line.StartPoint.Y));
-                    double dec = Math.Sqrt(Math.Pow(e.X - circle.Centre.X, 2) +
-                        Math.Pow(e.Y - circle.Centre.Y, 2));
+                    double dx = (line.EndPoint.X - line.StartPoint.X);
+                    double dy = (line.EndPoint.Y - line.StartPoint.Y);
 
-                    // Secant
-                    if (dec < circle.Radius) {
-                        double dt = Math.Sqrt(Math.Pow(circle.Radius, 2) - Math.Pow(dec, 2));
-                        Vector2 i1 = new Vector2((float)((t - dt) * dx + line.StartPoint.X),
-                            (float)((t - dt) * dy + line.StartPoint.Y));
-                        Vector2 i2 = new Vector2((float)((t + dt) * dx + line.StartPoint.X),
-                            (float)((t + dt) * dy + line.StartPoint.Y));
+                    double a = (Math.Pow(dx, 2) + Math.Pow(dy, 2));
+                    double b = 2 * (dx * (line.StartPoint.X - circle.Centre.X) +
+                        dy * (line.StartPoint.Y - circle.Centre.Y));
+                    double c = (Math.Pow((line.StartPoint.X - circle.Centre.X), 2) +
+                        Math.Pow((line.StartPoint.Y - circle.Centre.Y), 2) -
+                        Math.Pow(circle.Radius, 2));
+                    double d = Math.Pow(b, 2) - 4 * a * c;
+                    double t;
 
+                    if ((a <= Maths.LinearAlgebra.EPSILON) || (d < 0))
+                        return null;
+                    else if (d == 0) {
+                        // One solution
+                        t = -b / (2 * a);
+                        return new Pair(new Vector2((float)(line.StartPoint.X + t * dx),
+                            (float)(line.StartPoint.Y + t * dy)), null);
+                    }
+                    else {
+                        // Two solutions
+                        t = ((-b + Math.Sqrt(d)) / (2 * a));
+                        Vector2 i1 = new Vector2((float)(line.StartPoint.X + t * dx),
+                            (float)(line.StartPoint.Y + t * dy));
+                        t = ((-b - Math.Sqrt(d)) / (2 * a));
+                        Vector2 i2 = new Vector2((float)(line.StartPoint.X + t * dx),
+                            (float)(line.StartPoint.Y + t * dy));
                         return new Pair(i1, i2);
                     }
-                    // Tangent
-                    else if (dec == circle.Radius)
-                        return new Pair(e, null);
-                    // No intersection
-                    else
-                        return null;
                 }
 
                 /// <summary>
@@ -385,6 +415,41 @@ namespace EUMD_CS {
                     foreach (Line t in tris)
                         if (t.isIntersecting(line))
                             isecs.Add(t.getInterceptPoint(line));
+
+                    return isecs;
+                }
+
+                /// <summary>
+                /// Gets the intersect points between a triangle and a circle.
+                /// </summary>
+                /// <param name="triangle">
+                /// A triangle.
+                /// </param>
+                /// <param name="circle">
+                /// A circle.
+                /// </param>
+                /// <returns>
+                /// Returns a list of vectors containing all the intersect points.
+                /// </returns>
+                public static List<Vector2> getIntersectPointsPrimitives(Triangle triangle, Circle circle) {
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    foreach (Line t in tris) {
+                        if (isIntersectPrimitives(t, circle)) {
+                            Pair currentPair = getIntersectPointsPrimitives(t, circle);
+                            isecs.Add((Vector2)currentPair.First);
+                            if (currentPair.Second != null)
+                                isecs.Add((Vector2)currentPair.Second);
+                        }
+                    }
 
                     return isecs;
                 }
@@ -999,6 +1064,14 @@ namespace EUMD_CS {
 
                 #endregion
 
+                #region Destructor
+
+                ~Triangle() {
+                    dispose(false);
+                }
+
+                #endregion
+
                 #region Fields
 
                 private bool isEqualateral;
@@ -1257,6 +1330,273 @@ namespace EUMD_CS {
 
                 /// <summary>
                 /// Function that draws the triangle.
+                /// </summary>
+                /// <param name="gameTime">
+                /// Represents the current game time.
+                /// </param>
+                public override void draw(GameTime gameTime) {
+                    base.draw(gameTime);
+
+                    if (m_rotateState == RotateState.Vertex) {
+                        for (int i = 0; i < m_vertices.Length; ++i) {
+                            if (i != m_vertexIndex) {
+                                m_vertices[i].Position = Vector3.Transform(
+                                    m_vertices[i].Position - m_origin, Matrix.CreateRotationZ(m_rotateSpeed)) + m_origin;
+                            }
+                        }
+                    }
+
+                    foreach (EffectPass pass in m_basicEffect.CurrentTechnique.Passes) {
+                        pass.Apply();
+                        m_graphicsDevice.DrawPrimitives(PrimitiveType.LineStrip, 0, m_vertices.Length - 1);
+                    }
+                }
+
+                #endregion
+            }
+
+            /// <summary>
+            /// Class that represents a Oblong (or Rectangle).
+            /// Called Oblong to stop clashes with Microsoft.Xna.Framework.Rectangle,
+            /// Oblong will act pretty much the same, except it will support rotations
+            /// unike MS version :D
+            /// </summary>
+            public class Oblong : Primitive {
+
+                #region Constructors
+
+                /// <summary>
+                /// Default Constructor.
+                /// </summary>
+                public Oblong() { ; }
+
+                /// <summary>
+                /// Creates an Oblong using a top left corner, width and height.
+                /// </summary>
+                /// <param name="leftTop">
+                /// A point to start the Oblong from.
+                /// </param>
+                /// <param name="width">
+                /// The width of the Oblong.
+                /// </param>
+                /// <param name="height">
+                /// The height of the Oblong.
+                /// </param>
+                /// <param name="color">
+                /// The colour of the Oblong.
+                /// </param>
+                /// <param name="graphicsDevice">
+                /// Represents the current GraphicsDevice.
+                /// </param>
+                public Oblong(Point leftTop, double width, double height, Color color, GraphicsDevice graphicsDevice) {
+                    m_graphicsDevice = graphicsDevice;
+                    m_width = width;
+                    m_height = height;
+                    m_vertices = new VertexPositionColor[5];
+                    m_vertices[0] = new VertexPositionColor(new Vector3(leftTop.X, leftTop.Y, 0), color);
+                    m_vertices[1] = new VertexPositionColor(new Vector3(leftTop.X, (float)(leftTop.Y + m_height), 0), color);
+                    m_vertices[2] = new VertexPositionColor(new Vector3((float)(leftTop.X + m_width),
+                        (float)(leftTop.Y + m_height), 0), color);
+                    m_vertices[3] = new VertexPositionColor(new Vector3((float)(leftTop.X + m_width), leftTop.Y, 0), color);
+                    m_vertices[4] = m_vertices[0];
+                    m_origin = Centre;
+
+                    if (m_graphicsDevice != null)
+                        init(m_vertices.Length);
+                }
+
+                #endregion
+
+                #region Destructor
+
+                ~Oblong() {
+                    dispose(false);
+                }
+
+                #endregion
+
+                #region Fields
+
+                private double m_width, m_height;
+                private int m_vertexIndex;
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Gets and sets the Width of the Oblong.
+                /// </summary>
+                public double Width {
+                    get { return m_width; }
+                    set { m_width = value; }
+                }
+
+                /// <summary>
+                /// Gets and sets the Height of the Oblong.
+                /// </summary>
+                public double Height {
+                    get { return m_height; }
+                    set { m_height = value; }
+                }
+
+                /// <summary>
+                /// Gets the Centre of the Oblong.
+                /// </summary>
+                public Vector3 Centre {
+                    get {
+                        float x = (float)(m_vertices[3].Position.X - (m_width / 2));
+                        float y = (float)(m_vertices[1].Position.Y - (m_height / 2));
+
+                        return new Vector3(x, y, 0);
+                    }
+                }
+
+                /// <summary>
+                /// Gets the top of the Oblong at its creation time.
+                /// </summary>
+                public double Top {
+                    get { return m_vertices[0].Position.Y; }
+                }
+
+                /// <summary>
+                /// Gets the bottom of the Oblong at its creation time.
+                /// </summary>
+                public double Bottom {
+                    get { return m_vertices[1].Position.Y; }
+                }
+
+                /// <summary>
+                /// Gets the left-hand-side of the Oblong at its creation time.
+                /// </summary>
+                public double Left {
+                    get { return m_vertices[0].Position.X; }
+                }
+
+                /// <summary>
+                /// Gets the right-hand-side of the Oblong at its creation time.
+                /// </summary>
+                public double Right {
+                    get { return m_vertices[3].Position.X; }
+                }
+
+                /// <summary>
+                /// Gets the area of the Oblong.
+                /// </summary>
+                public double Area {
+                    get { return (m_width * m_height); }
+                }
+
+                /// <summary>
+                /// Gets the length from one corner of the Oblong to its opposite diagonal corner.
+                /// </summary>
+                public double DiagonalLength {
+                    get {
+                        Line diagonal = new Line(new Point((int)m_vertices[0].Position.X, (int)m_vertices[0].Position.Y),
+                            new Point((int)m_vertices[2].Position.X, (int)m_vertices[2].Position.Y), Color.Transparent, null);
+
+                        return diagonal.Distance;
+                    }
+                }
+
+                #endregion
+
+                #region Functions
+
+                /// <summary>
+                /// Enables rotation form the Centre of the Oblong.
+                /// </summary>
+                public override void enableRotationFromCentre() {
+                    base.enableRotationFromCentre();
+                    m_origin = this.Centre;
+                }
+
+                /// <summary>
+                /// Enables rotation around one of the Oblong's vertices.
+                /// </summary>
+                /// <param name="vertexIndex">
+                /// The index of the vertex to rotate around.
+                /// </param>
+                public override void enableRotationFromVertex(int vertexIndex) {
+                    base.enableRotationFromVertex(vertexIndex);
+                    m_vertexIndex = vertexIndex;
+                }
+
+                /// <summary>
+                /// Creates an array of lines from two Oblongs, to aid intersection checks.
+                /// </summary>
+                /// <param name="other">
+                /// The other Oblong.
+                /// </param>
+                /// <returns>
+                /// Returns an array of lines.
+                /// </returns>
+                private Line[] createLineArrayFromOblongs(Oblong other) {
+                    Line[] oLines = new Line[8];
+
+                    // This Oblong
+                    oLines[0] = new Line(new Point((int)this.m_vertices[0].Position.X, (int)this.m_vertices[0].Position.Y),
+                        new Point((int)this.m_vertices[1].Position.X, (int)this.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    oLines[1] = new Line(new Point((int)this.m_vertices[1].Position.X, (int)this.m_vertices[1].Position.Y),
+                        new Point((int)this.m_vertices[2].Position.X, (int)this.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    oLines[2] = new Line(new Point((int)this.m_vertices[2].Position.X, (int)this.m_vertices[2].Position.Y),
+                        new Point((int)this.m_vertices[3].Position.X, (int)this.m_vertices[3].Position.Y),
+                        Color.Transparent, null);
+                    oLines[3] = new Line(new Point((int)this.m_vertices[3].Position.X, (int)this.m_vertices[3].Position.Y),
+                        new Point((int)this.m_vertices[0].Position.X, (int)this.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    // Other Oblong
+                    oLines[4] = new Line(new Point((int)other.m_vertices[0].Position.X, (int)other.m_vertices[0].Position.Y),
+                        new Point((int)other.m_vertices[1].Position.X, (int)other.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    oLines[5] = new Line(new Point((int)other.m_vertices[1].Position.X, (int)other.m_vertices[1].Position.Y),
+                        new Point((int)other.m_vertices[2].Position.X, (int)other.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    oLines[6] = new Line(new Point((int)other.m_vertices[2].Position.X, (int)other.m_vertices[2].Position.Y),
+                        new Point((int)other.m_vertices[3].Position.X, (int)other.m_vertices[3].Position.Y),
+                        Color.Transparent, null);
+                    oLines[7] = new Line(new Point((int)other.m_vertices[3].Position.X, (int)other.m_vertices[3].Position.Y),
+                        new Point((int)other.m_vertices[0].Position.X, (int)other.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    return oLines;
+                }
+
+                /// <summary>
+                /// Determines whether this Oblong intersects with another Oblong.
+                /// </summary>
+                /// <param name="other">
+                /// The other Oblong to check against.
+                /// </param>
+                /// <returns>
+                /// Returns true on an intersection.
+                /// </returns>
+                public bool isIntersecting(Oblong other) {
+                    Line[] oLines = createLineArrayFromOblongs(other);
+                    Line o1A = oLines[0];
+                    Line o2A = oLines[1];
+                    Line o3A = oLines[2];
+                    Line o4A = oLines[3];
+                    Line o1B = oLines[4];
+                    Line o2B = oLines[5];
+                    Line o3B = oLines[6];
+                    Line o4B = oLines[7];
+
+                    return (o1A.isIntersecting(o1B) || o1A.isIntersecting(o2B) ||
+                        o1A.isIntersecting(o3B) || o1A.isIntersecting(o4B) ||
+                        o2A.isIntersecting(o1B) || o2A.isIntersecting(o2B) ||
+                        o2A.isIntersecting(o3B) || o2A.isIntersecting(o4B) ||
+                        o3A.isIntersecting(o1B) || o3A.isIntersecting(o2B) ||
+                        o3A.isIntersecting(o3B) || o3A.isIntersecting(o4B) ||
+                        o4A.isIntersecting(o1B) || o4A.isIntersecting(o2B) ||
+                        o4A.isIntersecting(o3B) || o4A.isIntersecting(o4B));
+                }
+
+                /// <summary>
+                /// Draws the Oblong.
                 /// </summary>
                 /// <param name="gameTime">
                 /// Represents the current game time.
