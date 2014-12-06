@@ -41,6 +41,11 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace EUMD_CS {
 
+    /*
+     * TODO:
+     *      Add Tile Generater namespace and relevant classes
+     */
+
     namespace Graphics {
 
         namespace GeometryPrimitives {
