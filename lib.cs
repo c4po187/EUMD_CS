@@ -266,96 +266,39 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Checks to see if a line and a circle intersect.
+                /// Function provides a mechanism for checking whether a line and circle intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="line">
-                /// A line.
+                /// A Line.
                 /// </param>
                 /// <param name="circle">
-                /// A Circle.
+                /// An Circle.
                 /// </param>
                 /// <returns>
-                /// True on an intersection.
+                /// Returns a Tuple containing a bool (true on an intersection), and a pair
+                /// containing the points of intersection between the two primitives.
                 /// </returns>
-                public static bool isIntersectPrimitives(Line line, Circle circle) {
+                public static Tuple<bool, Pair> getPointsOnIntersect(Line line, Circle circle) {
+                    // First check if there is in fact an intersection at all
                     Vector3 sc = circle.Centre - line.StartPoint;
                     Vector3 ec = line.EndPoint - line.StartPoint;
                     float ecd = Maths.LinearAlgebra.dotProductVec3(ec, ec);
                     float secd = Maths.LinearAlgebra.dotProductVec3(sc, ec);
-                    float t = secd / ecd;
+                    float _t = secd / ecd;
 
-                    if (t < 0) t = 0; else if (t > 1) t = 1;
+                    if (_t < 0) _t = 0; else if (_t > 1) _t = 1;
 
-                    Vector3 h = ((ec * t) + line.StartPoint) - circle.Centre;
+                    Vector3 h = ((ec * _t) + line.StartPoint) - circle.Centre;
                     float hd = Maths.LinearAlgebra.dotProductVec3(h, h);
 
-                    return (hd <= Math.Pow(circle.Radius, 2));
-                }
+                    bool bIntersects = (hd <= Math.Pow(circle.Radius, 2));
 
-                /// <summary>
-                /// Checks whether a line and a triangle intersect.
-                /// </summary>
-                /// <param name="line">
-                /// A line.
-                /// </param>
-                /// <param name="triangle">
-                /// A triangle.
-                /// </param>
-                /// <returns>
-                /// True on an intersection.
-                /// </returns>
-                public static bool isIntersectPrimitives(Line line, Triangle triangle) {
-                    Line[] tris = new Line[3];
-                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
-                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
-                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
-                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
-                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
-                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+                    // Setup empty vectors for no intersection (we have to return something)
+                    Vector2 i1, i2;
+                    i1 = i2 = new Vector2(float.NaN, float.NaN);
 
-                    return (line.isIntersecting(tris[0]) || line.isIntersecting(tris[1]) || line.isIntersecting(tris[2]));
-                }
-
-                /// <summary>
-                /// Checks whether a triangle and circle intersect.
-                /// </summary>
-                /// <param name="triangle">
-                /// A triangle.
-                /// </param>
-                /// <param name="circle">
-                /// A circle.
-                /// </param>
-                /// <returns>
-                /// True on an intersection
-                /// </returns>
-                public static bool isIntersectPrimitives(Triangle triangle, Circle circle) {
-                    Line[] tris = new Line[3];
-                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
-                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
-                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
-                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
-                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
-                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
-
-                    return (isIntersectPrimitives(tris[0], circle) || isIntersectPrimitives(tris[1], circle) ||
-                        isIntersectPrimitives(tris[2], circle));
-                }
-
-                /// <summary>
-                /// Gets the intersect point/s between a line and circle, regards the line as infinite.
-                /// </summary>
-                /// <param name="line">
-                /// A line.
-                /// </param>
-                /// <param name="circle">
-                /// A circle.
-                /// </param>
-                /// <returns>
-                /// Returns a pair of vectors if secant...
-                /// Returns a vector in the first index of the pair, null in the second if tangent...
-                /// Returns null otherwise.
-                /// </returns>
-                public static Pair getIntersectPointsPrimitives(Line line, Circle circle) {
+                    // Now calculate the intersection points
                     double dx = (line.EndPoint.X - line.StartPoint.X);
                     double dy = (line.EndPoint.Y - line.StartPoint.Y);
 
@@ -368,70 +311,44 @@ namespace EUMD_CS {
                     double d = Math.Pow(b, 2) - 4 * a * c;
                     double t;
 
-                    if ((a <= Maths.LinearAlgebra.EPSILON) || (d < 0))
-                        return null;
-                    else if (d == 0) {
-                        // One solution
-                        t = -b / (2 * a);
-                        return new Pair(new Vector2((float)(line.StartPoint.X + t * dx),
-                            (float)(line.StartPoint.Y + t * dy)), null);
+                    if ((a >= Maths.LinearAlgebra.EPSILON) || (d >= 0)) {
+                        if (d == 0) {
+                            // One solution
+                            t = -b / (2 * a);
+                            i1 = new Vector2((float)(line.StartPoint.X + t * dx),
+                                (float)(line.StartPoint.Y + t * dy));
+                        }
+                        else {
+                            // Two solutions
+                            t = ((-b + Math.Sqrt(d)) / (2 * a));
+                            i1 = new Vector2((float)(line.StartPoint.X + t * dx),
+                                (float)(line.StartPoint.Y + t * dy));
+                            t = ((-b - Math.Sqrt(d)) / (2 * a));
+                            i2 = new Vector2((float)(line.StartPoint.X + t * dx),
+                                (float)(line.StartPoint.Y + t * dy));
+                        }
                     }
-                    else {
-                        // Two solutions
-                        t = ((-b + Math.Sqrt(d)) / (2 * a));
-                        Vector2 i1 = new Vector2((float)(line.StartPoint.X + t * dx),
-                            (float)(line.StartPoint.Y + t * dy));
-                        t = ((-b - Math.Sqrt(d)) / (2 * a));
-                        Vector2 i2 = new Vector2((float)(line.StartPoint.X + t * dx),
-                            (float)(line.StartPoint.Y + t * dy));
-                        return new Pair(i1, i2);
-                    }
+
+                    return Tuple.Create(bIntersects, new Pair(i1, i2));
                 }
 
                 /// <summary>
-                /// Gets the intersect points between a line and a triangle.
+                /// Function provides a mechanism for checking whether a line and triangle intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="line">
-                /// A line.
+                /// A Line.
                 /// </param>
                 /// <param name="triangle">
-                /// A triangle.
+                /// A Triangle.
                 /// </param>
                 /// <returns>
-                /// A list of vectors containing all the intersect points.
+                /// Returns a Tuple containing a bool (true on an intersection), and a pair 
+                /// containing the points of intersection between the two primitives.
                 /// </returns>
-                public static List<Vector2> getIntersectPointsPrimitives(Line line, Triangle triangle) {
-                    // List to hold intersect points (which will be returned)
-                    List<Vector2> isecs = new List<Vector2>();
-
-                    Line[] tris = new Line[3];
-                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
-                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
-                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
-                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
-                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
-                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
-
-                    foreach (Line t in tris)
-                        if (t.isIntersecting(line))
-                            isecs.Add(t.getInterceptPoint(line));
-
-                    return isecs;
-                }
-
-                /// <summary>
-                /// Gets the intersect points between a triangle and a circle.
-                /// </summary>
-                /// <param name="triangle">
-                /// A triangle.
-                /// </param>
-                /// <param name="circle">
-                /// A circle.
-                /// </param>
-                /// <returns>
-                /// Returns a list of vectors containing all the intersect points.
-                /// </returns>
-                public static List<Vector2> getIntersectPointsPrimitives(Triangle triangle, Circle circle) {
+                public static Tuple<bool, Pair> getPointsOnIntersect(Line line, Triangle triangle) {
+                    bool bIntersects = false;
+                    Vector2 nullvec = new Vector2(float.NaN, float.NaN);
                     List<Vector2> isecs = new List<Vector2>();
 
                     Line[] tris = new Line[3];
@@ -443,15 +360,202 @@ namespace EUMD_CS {
                         new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
 
                     foreach (Line t in tris) {
-                        if (isIntersectPrimitives(t, circle)) {
-                            Pair currentPair = getIntersectPointsPrimitives(t, circle);
-                            isecs.Add((Vector2)currentPair.First);
-                            if (currentPair.Second != null)
-                                isecs.Add((Vector2)currentPair.Second);
+                        if (t.getPointsOnIntersect(line).Item1) {
+                            bIntersects = true;
+                            isecs.Add(t.getPointsOnIntersect(line).Item2);
                         }
                     }
 
-                    return isecs;
+                    Pair points = new Pair();
+                    if (isecs.Count > 0) {
+                        points.First = (Vector2)isecs[0];
+                        if (isecs.Count > 1)
+                            points.Second = (Vector2)isecs[1];
+                        else
+                            points.Second = (Vector2)nullvec;
+                    }
+
+                    return Tuple.Create(bIntersects, points);
+                }
+
+                /// <summary>
+                /// Function provides a mechanism for checking whether a line and oblong intersect,
+                /// and also retrieves the points of intersection.
+                /// </summary>
+                /// <param name="line">
+                /// A Line.
+                /// </param>
+                /// <param name="oblong">
+                /// An Oblong.
+                /// </param>
+                /// <returns>
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two primitives.
+                /// </returns>
+                public static Tuple<bool, List<Vector2>> getPointsOnIntersect(Line line, Oblong oblong) {
+                    bool bIntersects = false;
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    Line[] oLines = new Line[4];
+                    oLines[0] = new Line(new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    oLines[1] = new Line(new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    oLines[2] = new Line(new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        Color.Transparent, null);
+                    oLines[3] = new Line(new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    foreach (Line o in oLines) {
+                        if (o.getPointsOnIntersect(line).Item1) {
+                            bIntersects = true;
+                            isecs.Add(o.getPointsOnIntersect(line).Item2);
+                        }
+                    }
+
+                    return Tuple.Create(bIntersects, isecs);
+                }
+
+                /// <summary>
+                /// Function provides a mechanism for checking whether a circle and triangle intersect,
+                /// and also retrieves the points of intersection. 
+                /// </summary>
+                /// <param name="circle">
+                /// A Circle.
+                /// </param>
+                /// <param name="triangle">
+                /// A Triangle.
+                /// </param>
+                /// <returns>
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two primitives. 
+                /// </returns>
+                public static Tuple<bool, List<Vector2>> getPointsOnIntersect(Circle circle, Triangle triangle) {
+                    bool bIntersects = false;
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    // Create 3 Lines from the triangle
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    foreach (Line t in tris) {
+                        if (getPointsOnIntersect(t, circle).Item1) {
+                            bIntersects = true;
+                            Pair cPoints = getPointsOnIntersect(t, circle).Item2;
+                            isecs.Add((Vector2)cPoints.First);
+                            isecs.Add((Vector2)cPoints.Second);
+                        }
+                    }
+
+                    return Tuple.Create(bIntersects, isecs);
+                }
+
+                /// <summary>
+                /// Function provides a mechanism for checking whether a circle and an oblong intersect,
+                /// and also retrieves the points of intersection. 
+                /// </summary>
+                /// <param name="circle">
+                /// A Circle.
+                /// </param>
+                /// <param name="oblong">
+                /// An Oblong.
+                /// </param>
+                /// <returns>
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two primitives. 
+                /// </returns>
+                public static Tuple<bool, List<Vector2>> getPointsOnIntersect(Circle circle, Oblong oblong) {
+                    bool bIntersects = false;
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    // Create an array of lines from the Oblong
+                    Line[] oLines = new Line[4];
+                    oLines[0] = new Line(new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    oLines[1] = new Line(new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    oLines[2] = new Line(new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        Color.Transparent, null);
+                    oLines[3] = new Line(new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    foreach (Line o in oLines) {
+                        if (getPointsOnIntersect(o, circle).Item1) {
+                            bIntersects = true;
+                            Pair points = getPointsOnIntersect(o, circle).Item2;
+                            isecs.Add((Vector2)points.First);
+                            isecs.Add((Vector2)points.Second);
+                        }
+                    }
+
+                    return Tuple.Create(bIntersects, isecs);
+                }
+
+                /// <summary>
+                /// Function provides a mechanism for checking whether a triangle and an oblong intersect,
+                /// and also retrieves the points of intersection.
+                /// </summary>
+                /// <param name="triangle">
+                /// A Triangle.
+                /// </param>
+                /// <param name="oblong">
+                /// An Oblong.
+                /// </param>
+                /// <returns>
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two primitives. 
+                /// </returns>
+                public static Tuple<bool, List<Vector2>> getPointsOnIntersect(Triangle triangle, Oblong oblong) {
+                    bool bIntersects = false;
+                    List<Vector2> isecs = new List<Vector2>();
+
+                    // Create array of Lines from Triangle
+                    Line[] tris = new Line[3];
+                    tris[0] = new Line(new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y),
+                        new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y), Color.Transparent, null);
+                    tris[1] = new Line(new Point((int)triangle.Vertex_B.X, (int)triangle.Vertex_B.Y),
+                        new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y), Color.Transparent, null);
+                    tris[2] = new Line(new Point((int)triangle.Vertex_C.X, (int)triangle.Vertex_C.Y),
+                        new Point((int)triangle.Vertex_A.X, (int)triangle.Vertex_A.Y), Color.Transparent, null);
+
+                    // Create array of lines from the Oblong
+                    Line[] oLines = new Line[4];
+                    oLines[0] = new Line(new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        Color.Transparent, null);
+                    oLines[1] = new Line(new Point((int)oblong.m_vertices[1].Position.X, (int)oblong.m_vertices[1].Position.Y),
+                        new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        Color.Transparent, null);
+                    oLines[2] = new Line(new Point((int)oblong.m_vertices[2].Position.X, (int)oblong.m_vertices[2].Position.Y),
+                        new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        Color.Transparent, null);
+                    oLines[3] = new Line(new Point((int)oblong.m_vertices[3].Position.X, (int)oblong.m_vertices[3].Position.Y),
+                        new Point((int)oblong.m_vertices[0].Position.X, (int)oblong.m_vertices[0].Position.Y),
+                        Color.Transparent, null);
+
+                    foreach (Line t in tris) {
+                        foreach (Line o in oLines) {
+                            if (t.getPointsOnIntersect(o).Item1) {
+                                bIntersects = true;
+                                isecs.Add(t.getPointsOnIntersect(o).Item2);
+                            }
+                        }
+                    }
+
+                    return Tuple.Create(bIntersects, isecs);
                 }
 
                 /// <summary>
@@ -643,15 +747,33 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Gets the actual point of intersection between two lines.
+                /// Function provides a mechanism for checking whether two lines intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="other">
-                /// Parameter represents the other line to check against.
+                /// The other line to check against.
                 /// </param>
                 /// <returns>
-                /// Returns a vector containing the intercept point.
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two lines.
                 /// </returns>
-                public Vector2 getInterceptPoint(Line other) {
+                public Tuple<bool, Vector2> getPointsOnIntersect(Line other) {
+                    // Check whether there is an intersection initially
+                    bool bIntersects = false;
+
+                    Vector2 a = new Vector2(this.m_vertices[0].Position.X, this.m_vertices[0].Position.Y);
+                    Vector2 b = new Vector2(this.m_vertices[1].Position.X, this.m_vertices[1].Position.Y);
+                    Vector2 c = new Vector2(other.m_vertices[0].Position.X, other.m_vertices[0].Position.Y);
+                    Vector2 d = new Vector2(other.m_vertices[1].Position.X, other.m_vertices[1].Position.Y);
+
+                    if ((Maths.LinearAlgebra.scalarCrossProduct(a, c, d) *
+                            Maths.LinearAlgebra.scalarCrossProduct(b, c, d) < 0) &&
+                           (Maths.LinearAlgebra.scalarCrossProduct(a, b, c) *
+                            Maths.LinearAlgebra.scalarCrossProduct(a, b, d) < 0)) bIntersects = true;
+
+                    // Now get the intersect point
+                    Vector2 isec = new Vector2(float.NaN, float.NaN);
+
                     float x1 = this.m_vertices[0].Position.X;
                     float y1 = this.m_vertices[0].Position.Y;
                     float x2 = this.m_vertices[1].Position.X;
@@ -665,34 +787,15 @@ namespace EUMD_CS {
                     float det3_4 = Maths.LinearAlgebra.determinant(x3, y3, x4, y4);
                     float detsubs = Maths.LinearAlgebra.determinant((x1 - x2), (y1 - y2), (x3 - x4), (y3 - y4));
 
-                    if (detsubs == 0)
-                        return Vector2.Zero;
-                    else {
-                        float x = (Maths.LinearAlgebra.determinant(det1_2, (x1 - x2), det3_4, (x3 - x4)) / detsubs);
-                        float y = (Maths.LinearAlgebra.determinant(det1_2, (y1 - y2), det3_4, (y3 - y4)) / detsubs);
-                        return new Vector2(x, y);
+                    float x, y;
+
+                    if (detsubs != 0) {
+                        x = (Maths.LinearAlgebra.determinant(det1_2, (x1 - x2), det3_4, (x3 - x4)) / detsubs);
+                        y = (Maths.LinearAlgebra.determinant(det1_2, (y1 - y2), det3_4, (y3 - y4)) / detsubs);
+                        isec = new Vector2(x, y);
                     }
-                }
 
-                /// <summary>
-                /// Checks to see if our line intersects another line.
-                /// </summary>
-                /// <param name="other">
-                /// The other line to check the intersection against.
-                /// </param>
-                /// <returns>
-                /// True if the lines cross one an other (intersect).
-                /// </returns>
-                public bool isIntersecting(Line other) {
-                    Vector2 a = new Vector2(this.m_vertices[0].Position.X, this.m_vertices[0].Position.Y);
-                    Vector2 b = new Vector2(this.m_vertices[1].Position.X, this.m_vertices[1].Position.Y);
-                    Vector2 c = new Vector2(other.m_vertices[0].Position.X, other.m_vertices[0].Position.Y);
-                    Vector2 d = new Vector2(other.m_vertices[1].Position.X, other.m_vertices[1].Position.Y);
-
-                    return (Maths.LinearAlgebra.scalarCrossProduct(a, c, d) *
-                            Maths.LinearAlgebra.scalarCrossProduct(b, c, d) < 0) &&
-                           (Maths.LinearAlgebra.scalarCrossProduct(a, b, c) *
-                            Maths.LinearAlgebra.scalarCrossProduct(a, b, d) < 0);
+                    return Tuple.Create(bIntersects, isec);
                 }
 
                 /// <summary>
@@ -886,60 +989,49 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Checks to see if two circles intersect.
+                /// Function provides a mechanism for checking whether two circles intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="other">
-                /// The other circle to check against.
+                /// The other Circle to check against.
                 /// </param>
                 /// <returns>
-                /// True if there is an intersection.
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two circles.
                 /// </returns>
-                public bool isIntersecting(Circle other) {
-                    /* Construct a line from the centre of our circle to the centre of the other circle.
-                     * We will be needing the line for its distance.
-                     * */
+                public Tuple<bool, Pair> getPointsOnIntersect(Circle other) {
+                    // Check for an intersection initially
                     Line c = new Line(new Point((int)this.Centre.X, (int)this.Centre.Y),
                         new Point((int)other.Centre.X, (int)other.Centre.Y), Color.Transparent, null);
-
-                    return ((Maths.LinearAlgebra.absolute(this.Radius - other.Radius) <=
+                    bool bIntersects = ((Maths.LinearAlgebra.absolute(this.Radius - other.Radius) <=
                         Maths.LinearAlgebra.absolute(c.Distance)) && (Maths.LinearAlgebra.absolute(c.Distance) <=
                         Maths.LinearAlgebra.absolute(this.Radius + other.Radius)));
-                }
 
-                /// <summary>
-                /// Gets both intersection points of the circles.
-                /// </summary>
-                /// <param name="other">
-                /// The other circle to analyze.
-                /// </param>
-                /// <returns>
-                /// A pair of Vectors.
-                /// </returns>
-                public Pair getIntersectionPoints(Circle other) {
-                    // X and Y differences of the circles
+                    // Setup two empty vectors
+                    Vector2 i1, i2;
+                    i1 = i2 = new Vector2(float.NaN, float.NaN);
+
+                    // Now get intersection points (if any)
                     double xDiff = (other.Centre.X - this.Centre.X);
                     double yDiff = (other.Centre.Y - this.Centre.Y);
-
-                    // Distance between the centres of the circles
                     double d = Math.Sqrt(Math.Pow(xDiff, 2) + Math.Pow(yDiff, 2));
-
-                    // Distance from our circle's centre to a line joining both points of intersection
                     double dl = (Math.Pow(d, 2) + Math.Pow(this.Radius, 2) - Math.Pow(other.Radius, 2)) / (2 * d);
 
-                    // Left hand side intersect point
-                    Vector2 i1 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) + ((yDiff / d) *
-                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
-                        (float)(this.Centre.Y + ((yDiff * dl) / d) - ((xDiff / d) *
-                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
+                    if (bIntersects) {
+                        // Left hand side intersect point
+                        i1 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) + ((yDiff / d) *
+                            Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
+                            (float)(this.Centre.Y + ((yDiff * dl) / d) - ((xDiff / d) *
+                            Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
 
-                    // Right hand side intersect point
-                    Vector2 i2 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) - ((yDiff / d) *
-                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
-                        (float)(this.Centre.Y + ((yDiff * dl) / d) + ((xDiff / d) *
-                        Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
+                        // Right hand side intersect point
+                        i2 = new Vector2((float)(this.Centre.X + ((xDiff * dl) / d) - ((yDiff / d) *
+                            Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))),
+                            (float)(this.Centre.Y + ((yDiff * dl) / d) + ((xDiff / d) *
+                            Math.Sqrt(Math.Pow(this.Radius, 2) - Math.Pow(dl, 2)))));
+                    }
 
-                    // Return both vectors as a pair (can be accessed as Pair.First & Pair.Second)
-                    return new Pair(i1, i2);
+                    return Tuple.Create(bIntersects, new Pair(i1, i2));
                 }
 
                 /// <summary>
@@ -1122,7 +1214,7 @@ namespace EUMD_CS {
                         Line alpha = this.createLineFrom(this.Vertex_B, null);
                         Line beta = this.createLineFrom(this.Vertex_C, null);
 
-                        return alpha.getInterceptPoint(beta);
+                        return alpha.getPointsOnIntersect(beta).Item2;
                     }
                 }
 
@@ -1279,57 +1371,39 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Checks for the intersection of two triangles.
+                /// Function provides a mechanism for checking whether two triangles intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="other">
-                /// The other triangle to check against for intersections.
+                /// The other Triangle to check against.
                 /// </param>
                 /// <returns>
-                /// Returns true on an intersection.
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two triangles.
                 /// </returns>
-                public bool isIntersecting(Triangle other) {
+                public Tuple<bool, List<Vector2>> getPointsOnIntersect(Triangle other) {
+                    bool bIntersects = false;
+
                     // First make lines from all sides of the triangles
                     Line[] tris = createTriLinesArray(other);
-                    Line t1A = tris[0];
-                    Line t1B = tris[1];
-                    Line t1C = tris[2];
-                    Line t2A = tris[3];
-                    Line t2B = tris[4];
-                    Line t2C = tris[5];
 
-                    return (t1A.isIntersecting(t2A) || t1A.isIntersecting(t2B) || t1A.isIntersecting(t2C) ||
-                        t1B.isIntersecting(t2A) || t1B.isIntersecting(t2B) || t1B.isIntersecting(t2C) ||
-                        t1C.isIntersecting(t2A) || t1C.isIntersecting(t2B) || t1C.isIntersecting(t2C));
-                }
+                    // Create a list to add the points of intersection to
+                    List<Vector2> isecs = new List<Vector2>();
 
-                /// <summary>
-                /// Gets all intersect points of two triangles.
-                /// </summary>
-                /// <param name="other">
-                /// The intersecting triangle.
-                /// </param>
-                /// <returns>
-                /// Returns a list of vectors.
-                /// </returns>
-                public List<Vector2> getIntersectPoints(Triangle other) {
-                    // List to add intersect points to, (to be returned)
-                    List<Vector2> isec = new List<Vector2>();
-                    // Array of triangle edges
-                    Line[] tris = createTriLinesArray(other);
-
-                    // Grab intersect points (if any)
-                    for (int triA = 0; triA < (tris.Length / 2); ++triA) {
-                        for (int triB = (tris.Length / 2); triB < tris.Length; ++triB) {
-                            if (tris[triA].isIntersecting(tris[triB]))
-                                isec.Add(tris[triA].getInterceptPoint(tris[triB]));
+                    for (int a = 0; a < (tris.Length / 2); ++a) {
+                        for (int b = (tris.Length / 2); b < tris.Length; ++b) {
+                            if (tris[a].getPointsOnIntersect(tris[b]).Item1) {
+                                bIntersects = true;
+                                isecs.Add(tris[a].getPointsOnIntersect(tris[b]).Item2);
+                            }
                         }
                     }
 
-                    return isec;
+                    return Tuple.Create(bIntersects, isecs);
                 }
 
                 /// <summary>
-                /// Function that draws the triangle.
+                /// Function that draws the triangle.--
                 /// </summary>
                 /// <param name="gameTime">
                 /// Represents the current game time.
@@ -1566,33 +1640,31 @@ namespace EUMD_CS {
                 }
 
                 /// <summary>
-                /// Determines whether this Oblong intersects with another Oblong.
+                /// Function provides a mechanism for checking whether two oblongs intersect,
+                /// and also retrieves the points of intersection.
                 /// </summary>
                 /// <param name="other">
                 /// The other Oblong to check against.
                 /// </param>
                 /// <returns>
-                /// Returns true on an intersection.
+                /// Returns a Tuple containing a bool (true on an intersection), and a list of
+                /// vectors containing the points of intersection between the two oblongs.
                 /// </returns>
-                public bool isIntersecting(Oblong other) {
+                public Tuple<bool, List<Vector2>> getPointsOnIntersect(Oblong other) {
+                    bool bIntersects = false;
+                    List<Vector2> isecs = new List<Vector2>();
                     Line[] oLines = createLineArrayFromOblongs(other);
-                    Line o1A = oLines[0];
-                    Line o2A = oLines[1];
-                    Line o3A = oLines[2];
-                    Line o4A = oLines[3];
-                    Line o1B = oLines[4];
-                    Line o2B = oLines[5];
-                    Line o3B = oLines[6];
-                    Line o4B = oLines[7];
 
-                    return (o1A.isIntersecting(o1B) || o1A.isIntersecting(o2B) ||
-                        o1A.isIntersecting(o3B) || o1A.isIntersecting(o4B) ||
-                        o2A.isIntersecting(o1B) || o2A.isIntersecting(o2B) ||
-                        o2A.isIntersecting(o3B) || o2A.isIntersecting(o4B) ||
-                        o3A.isIntersecting(o1B) || o3A.isIntersecting(o2B) ||
-                        o3A.isIntersecting(o3B) || o3A.isIntersecting(o4B) ||
-                        o4A.isIntersecting(o1B) || o4A.isIntersecting(o2B) ||
-                        o4A.isIntersecting(o3B) || o4A.isIntersecting(o4B));
+                    for (int a = 0; a < (oLines.Length / 2); ++a) {
+                        for (int b = (oLines.Length / 2); b < oLines.Length; ++b) {
+                            if (oLines[a].getPointsOnIntersect(oLines[b]).Item1) {
+                                bIntersects = true;
+                                isecs.Add(oLines[a].getPointsOnIntersect(oLines[b]).Item2);
+                            }
+                        }
+                    }
+
+                    return Tuple.Create(bIntersects, isecs);
                 }
 
                 /// <summary>
