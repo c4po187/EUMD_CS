@@ -16,5 +16,5 @@ USAGE
 To use the library, add bin/Release/EUMD_CS.dll as a reference to your current
 XNA/MonoGame project.
 When you are aware of what classes you will need to use (detailed above), add 
-the relevant namespaces to the top of your *.cs file.
+the relevant namespaces to the top of your *.cs file with the using keyword.
 
