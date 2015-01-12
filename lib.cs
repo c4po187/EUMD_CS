@@ -1583,21 +1583,6 @@ namespace EUMD_CS {
                 #region Overloads
 
                 /// <summary>
-                /// Provides the possibility of implicitly casting an instance
-                /// of type Oblong to Rectangle.
-                /// </summary>
-                /// <param name="oblong">
-                /// Parameter represents an instance of Oblong.
-                /// </param>
-                /// <returns>
-                /// An instance of Rectangle.
-                /// </returns>
-                public static implicit operator Rectangle(Oblong oblong) { 
-                    return new Rectangle(
-                        (int)oblong.Left, (int)oblong.Top, (int)oblong.Width, (int)oblong.Height);
-                }
-
-                /// <summary>
                 /// Provides the possibility of explicitly casting an instance
                 /// of type Oblong to Rectangle.
                 /// </summary>
