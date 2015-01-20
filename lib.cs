@@ -41,12 +41,521 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace EUMD_CS {
 
-    /*
-     * TODO:
-     *      Add Tile Generater namespace and relevant classes
-     */
-
     namespace Graphics {
+
+        #region Structures
+
+        /// <summary>
+        /// Simple struct that represents a screen resolution.
+        /// </summary>
+        public struct Resolution {
+
+            #region Members
+
+            public int width, height;
+
+            #endregion
+
+            #region Overloads
+
+            /// <summary>
+            /// Creates the possibility of implicitly converting a
+            /// Vector2 to this; Resolution.
+            /// </summary>
+            /// <param name="vec">
+            /// Represents the Vector to be cast.
+            /// </param>
+            /// <returns>
+            /// An instance of Resolution.
+            /// </returns>
+            public static implicit operator Resolution(Vector2 vec) {
+                return new Resolution { width = (int)vec.X, height = (int)vec.Y };
+            }
+
+            /// <summary>
+            /// Creates the possibility of implicitly converting an
+            /// instance of this, Resolution to Vector2.
+            /// </summary>
+            /// <param name="resolution">
+            /// Represents the instance of Resolution to be cast.
+            /// </param>
+            /// <returns>
+            /// An instance of Vector2.
+            /// </returns>
+            public static implicit operator Vector2(Resolution resolution) {
+                return new Vector2((float)resolution.width, (float)resolution.height);
+            }
+
+            /// <summary>
+            /// Creates the possibility of implicitly converting a
+            /// Point to this; Resolution. 
+            /// </summary>
+            /// <param name="point">
+            /// Represents the Point to be cast.
+            /// </param>
+            /// <returns>
+            /// An instance of Resolution.
+            /// </returns>
+            public static implicit operator Resolution(Point point) {
+                return new Resolution { width = point.X, height = point.Y };
+            }
+
+            /// <summary>
+            /// Creates the possibility of implicitly converting an
+            /// instance of this, Resolution to a Point. 
+            /// </summary>
+            /// <param name="resolution">
+            /// Represents the instance of Resolution to be cast.
+            /// </param>
+            /// <returns>
+            /// An instance of Point.
+            /// </returns>
+            public static implicit operator Point(Resolution resolution) {
+                return new Point(resolution.width, resolution.height);
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Macros
+
+        /// <summary>
+        /// Class that holds pre-defined, screen resolution macros. 
+        /// </summary>
+        public static class CommonResolutions {
+            /// <summary>
+            /// HVGA (480 x 320)
+            /// </summary>
+            public static Resolution HVGA = new Resolution { width = 480, height = 320 };
+
+            /// <summary>
+            /// VGA (640 x 480)
+            /// </summary>
+            public static Resolution VGA = new Resolution { width = 640, height = 480 };
+
+            /// <summary>
+            /// WGA (800 x 480)
+            /// </summary>
+            public static Resolution WGA = new Resolution { width = 800, height = 480 };
+
+            /// <summary>
+            /// SVGA (800 x 600) 
+            /// </summary>
+            public static Resolution SVGA = new Resolution { width = 800, height = 600 };
+
+            /// <summary>
+            /// WSVGA (1024 x 600)
+            /// </summary>
+            public static Resolution WSVGA = new Resolution { width = 1024, height = 600 };
+
+            /// <summary>
+            /// WXGA_H (1280 x 720)
+            /// </summary>
+            public static Resolution WXGA_H = new Resolution { width = 1280, height = 720 };
+
+            /// <summary>
+            /// WXGA (1280 x 768)
+            /// </summary>
+            public static Resolution WXGA = new Resolution { width = 1280, height = 768 };
+
+            /// <summary>
+            /// WXGA_MAX (1280 x 800)
+            /// </summary>
+            public static Resolution WXGA_MAX = new Resolution { width = 1280, height = 800 };
+
+            /// <summary>
+            /// NETDEV (1024 x 1024)
+            /// </summary>
+            public static Resolution NETDEV = new Resolution { width = 1024, height = 1024 };
+
+            /// <summary>
+            /// HD_R (1366 x 768)
+            /// </summary>
+            public static Resolution HD_R = new Resolution { width = 1366, height = 768 };
+
+            /// <summary>
+            /// WSXGA (1440 x 900)
+            /// </summary>
+            public static Resolution WSXGA = new Resolution { width = 1440, height = 900 };
+
+            /// <summary>
+            /// SXGA (1280 x 1024)
+            /// </summary>
+            public static Resolution SXGA = new Resolution { width = 1280, height = 1024 };
+
+            /// <summary>
+            /// HD_PLUS (1600 x 900)
+            /// </summary>
+            public static Resolution HD_PLUS = new Resolution { width = 1600, height = 900 };
+
+            /// <summary>
+            /// A4 (1440 x 1024)
+            /// </summary>
+            public static Resolution A4 = new Resolution { width = 1440, height = 1024 };
+
+            /// <summary>
+            /// HDV (1440 x 1080)
+            /// </summary>
+            public static Resolution HDV = new Resolution { width = 1440, height = 1080 };
+
+            /// <summary>
+            /// UXGA (1600 x 1200)
+            /// </summary>
+            public static Resolution UXGA = new Resolution { width = 1600, height = 1200 };
+
+            /// <summary>
+            /// FULL_HD (1920 x 1080)
+            /// </summary>
+            public static Resolution FULL_HD = new Resolution { width = 1920, height = 1080 };
+        }
+
+        #endregion
+
+		namespace Imaging {
+			
+			#region Public Enumerators
+
+			/// <summary>
+			/// Determines the sequence of fade transitions.
+			/// </summary>
+			public enum FadeSequence {
+				In, Out, In_Out, Out_In
+			}
+
+			/// <summary>
+			/// Tracks the current state of the transition.
+			/// </summary>
+			public enum FadeState {
+				Delay, InFade, OnImage, OutFade, EndBlackTime, Completed
+			}
+
+			#endregion
+			
+			#region Objects
+
+			/// <summary>
+			/// Provides a simple to use mechanism, allowing texture fading to a predefined sequence.
+			/// Requires the graphics device to be cleared to black (or any other colour of choosing),
+			/// as this class modifies the opacity value used to display a texture.
+			/// </summary>
+			public class Fader {
+
+				#region Constructors
+
+				/// <summary>
+				/// Common Constructor.
+				/// </summary>
+				/// <param name="imageTexture">
+				/// Texture containing the image to be faded.
+				/// </param>
+				/// <param name="imageTopLeft">
+				/// A point in the Euclidean 2D Plane representing the top left corner of the image.
+				/// </param>
+				/// <param name="width">
+				/// The desired width of the image.
+				/// </param>
+				/// <param name="height">
+				/// The desired height of the image.
+				/// </param>
+				/// <param name="fadeSequence">
+				/// The desired sequence the animation will follow.
+				/// </param>
+				/// <param name="delay">
+				/// Delay (seconds) before the fading begins.
+				/// </param>
+				/// <param name="inDuration">
+				/// 'Fade In' duration (seconds).
+				/// </param>
+				/// <param name="imageFocusDuration">
+				/// Focus duration (seconds).
+				/// </param>
+				/// <param name="outDuration">
+				/// 'Fade Out' duration (seconds).
+				/// </param>
+				public Fader(Texture2D imageTexture, Point imageTopLeft, int width, int height, FadeSequence fadeSequence,
+					float? delay, float? inDuration, float? imageFocusDuration, float? outDuration, float? blackTime) {
+					// Set members
+					m_imgTexture = imageTexture;
+					m_imgTopLeft = imageTopLeft;
+					m_imgWidth = width;
+					m_imgHeight = height;
+					m_fadeSeq = fadeSequence;
+
+					// Set timing members if needed
+					if (inDuration.HasValue) m_inDuration = inDuration.Value;
+					if (imageFocusDuration.HasValue) m_OnImgDuration = imageFocusDuration.Value;
+					if (outDuration.HasValue) m_outDuration = outDuration.Value;
+					if (blackTime.HasValue) m_blackTime = blackTime.Value;
+
+					// Set rectangle
+					m_imgRect = new Rectangle(m_imgTopLeft.X, m_imgTopLeft.Y, m_imgWidth, m_imgHeight);
+
+					// Set fade state
+					if (delay.HasValue) {
+						m_delay = delay.Value;
+						m_fadeState = FadeState.Delay;
+					}
+					else {
+						if (fadeSequence == FadeSequence.In || fadeSequence == FadeSequence.In_Out)
+							m_fadeState = FadeState.InFade;
+						else {
+							if (imageFocusDuration.HasValue)
+								m_fadeState = FadeState.OnImage;
+							else
+								m_fadeState = FadeState.OutFade;
+						}
+					}
+
+					// Set Opacity
+					switch (m_fadeState) { 
+						case FadeState.Completed:
+							break;
+						case FadeState.Delay:
+							if (fadeSequence == FadeSequence.In || fadeSequence == FadeSequence.In_Out)
+								m_opacity = 0f;
+							else
+								m_opacity = 1f;
+							break;
+						case FadeState.InFade:
+							m_opacity = 0f;
+							break;
+						case FadeState.OutFade:
+							m_opacity = 1f;
+							break;
+						case FadeState.OnImage:
+							m_opacity = 1f;
+							break;
+						case FadeState.EndBlackTime:
+							m_opacity = 0f;
+							break;
+					}
+
+					// Init timer
+					m_timeElapsed = 0f;
+				}
+
+				#endregion
+
+				#region Declarations
+
+				private Texture2D       m_imgTexture;
+				private Point           m_imgTopLeft;
+				private Rectangle       m_imgRect;
+				private int             m_imgWidth,     m_imgHeight;
+				private float           m_delay,        m_inDuration,       m_OnImgDuration,        m_outDuration, 
+										m_blackTime,    m_timeElapsed,  m_opacity;
+				private FadeSequence    m_fadeSeq;
+				private FadeState       m_fadeState;
+
+				#endregion
+
+				#region Properties
+
+				/// <summary>
+				/// Gets the image texture.
+				/// </summary>
+				public Texture2D ImageTexture { 
+					get { return m_imgTexture; }
+				}
+
+				/// <summary>
+				/// Gets and sets the image's top left corner.
+				/// </summary>
+				public Point ImageTopLeft {
+					get { return m_imgTopLeft; }
+					set {
+						m_imgTopLeft = value;
+						m_imgRect.X = m_imgTopLeft.X;
+						m_imgRect.Y = m_imgTopLeft.Y;
+					}
+				}
+
+				/// <summary>
+				/// Gets and sets the image width.
+				/// </summary>
+				public int Width {
+					get { return m_imgWidth; }
+					set {
+						m_imgWidth = value;
+						m_imgRect.Width = m_imgWidth;
+					}
+				}
+
+				/// <summary>
+				/// Gets and sets the image height.
+				/// </summary>
+				public int Height {
+					get { return m_imgHeight; }
+					set {
+						m_imgHeight = value;
+						m_imgRect.Height = m_imgHeight;
+					}
+				}
+
+				/// <summary>
+				/// Gets and sets the image opacity,
+				/// </summary>
+				public float Opacity {
+					get { return m_opacity; }
+					set { m_opacity = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the current state of the transition.
+				/// </summary>
+				public FadeState CurrentState {
+					get { return m_fadeState; }
+					set { m_fadeState = value; }
+				}
+
+				/// <summary>
+				/// Gets the predefined sequence.
+				/// </summary>
+				public FadeSequence Sequence {
+					get { return m_fadeSeq; }
+				}
+
+				/// <summary>
+				/// Gets and sets the transition delay.
+				/// </summary>
+				public float Delay {
+					get { return m_delay; }
+					set { m_delay = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the 'Fade In' duration.
+				/// </summary>
+				public float FadeIn_Duration {
+					get { return m_inDuration; }
+					set { m_inDuration = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the 'Fade Out' duration.
+				/// </summary>
+				public float FadeOut_Duration {
+					get { return m_outDuration; }
+					set { m_outDuration = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the focus duration.
+				/// </summary>
+				public float FocusDuration {
+					get { return m_OnImgDuration; }
+					set { m_OnImgDuration = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the end black time duration.
+				/// </summary>
+				public float BlackTime {
+					get { return m_blackTime; }
+					set { m_blackTime = value; }
+				}
+
+				/// <summary>
+				/// Gets and sets the Timer.
+				/// </summary>
+				public float TimeElapsed {
+					get { return m_timeElapsed; }
+					set { m_timeElapsed = value; }
+				}
+
+				#endregion
+
+				#region Functions
+
+				/// <summary>
+				/// The purpose of this function is to modify the opacity value, in reflection
+				/// to the current state of the fade transition.
+				/// </summary>
+				/// <param name="gameTime">
+				/// Provides a snapshot of the games timing values.
+				/// </param>
+				public void update(GameTime gameTime) {
+					if (m_fadeState != FadeState.Completed)
+						m_timeElapsed += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+					switch (m_fadeState) {
+						case FadeState.Completed:
+							break;
+						case FadeState.Delay:
+							if (m_timeElapsed > m_delay) {
+								// Switch up state
+								if (m_fadeSeq == FadeSequence.In || m_fadeSeq == FadeSequence.In_Out)
+									m_fadeState = FadeState.InFade;
+								else
+									m_fadeState = FadeState.OutFade;
+								// Reset timer
+								m_timeElapsed = 0f;
+							}
+							break;
+						case FadeState.InFade:
+							m_opacity = (1f / m_inDuration) * m_timeElapsed;
+							if (m_timeElapsed > m_inDuration) {
+								// Set image to fully opaque
+								m_opacity = 1f;
+								// Switch up state
+								if (m_fadeSeq == FadeSequence.In || m_fadeSeq == FadeSequence.Out_In)
+									m_fadeState = FadeState.EndBlackTime;
+								else
+									m_fadeState = FadeState.OnImage;
+								// Reset timer
+								m_timeElapsed = 0f;
+							}
+							break;
+						case FadeState.OnImage:
+							if (m_timeElapsed > m_OnImgDuration) { 
+								// Switch up state
+								if (m_fadeSeq == FadeSequence.In_Out)
+									m_fadeState = FadeState.OutFade;
+								else if (m_fadeSeq == FadeSequence.Out_In)
+									m_fadeState = FadeState.InFade;
+								else
+									m_fadeState = FadeState.EndBlackTime;
+								// Reset timer
+								m_timeElapsed = 0f;
+							}
+							break;
+						case FadeState.OutFade:
+							m_opacity = (1f - ((1f / m_outDuration) * m_timeElapsed));
+							if (m_timeElapsed > m_outDuration) { 
+								// Set image to fully transparent
+								m_opacity = 0f;
+								// Switch up state
+								if (m_fadeSeq == FadeSequence.Out_In)
+									m_fadeState = FadeState.OnImage;
+								else
+									m_fadeState = FadeState.EndBlackTime;
+								// Reset timer
+								m_timeElapsed = 0f;
+							}
+							break;
+						case FadeState.EndBlackTime:
+							m_opacity = 0f;
+							if (m_timeElapsed > m_blackTime)
+								m_fadeState = FadeState.Completed;
+							break;
+					}
+				}
+
+				/// <summary>
+				/// Renders the fading texture to the screen.
+				/// </summary>
+				/// <param name="spriteBatch"></param>
+				public void draw(SpriteBatch spriteBatch) {
+					spriteBatch.Draw(m_imgTexture, m_imgRect, (Color.White * m_opacity)); 
+				}
+
+				#endregion
+			}
+
+            #endregion
+		}
 
         namespace GeometryPrimitives {
 

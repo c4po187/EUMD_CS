@@ -13,3 +13,4 @@ C:\Users\c4po\Documents\Visual Studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\
 C:\Users\c4po\Documents\Visual Studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\SharpDX.Direct3D11.xml
 C:\Users\c4po\Documents\Visual Studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\SharpDX.XAudio2.xml
 C:\Users\c4po\Documents\Visual Studio 2012\Projects\EUMD_CS\EUMD_CS\bin\Release\SharpDX.DXGI.xml
+C:\Users\c4po\Documents\Visual Studio 2012\Projects\EUMD_CS\EUMD_CS\obj\Release\EUMD_CS.csprojResolveAssemblyReference.cache
