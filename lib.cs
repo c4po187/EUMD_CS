@@ -551,6 +551,16 @@ namespace EUMD_CS {
 					spriteBatch.Draw(m_imgTexture, m_imgRect, (Color.White * m_opacity)); 
 				}
 
+                /// <summary>
+                /// Overridden ToString().
+                /// </summary>
+                /// <returns>
+                /// A string.
+                /// </returns>
+                public override string ToString() {
+                    return "Fading...";
+                }
+
 				#endregion
 			}
 
